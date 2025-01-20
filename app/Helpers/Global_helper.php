@@ -269,13 +269,13 @@ class Global_helper
     {
         return Company::where('status',1)->first();
     }
-    
-    
+
+
     public static function getRolePermissions($role_id,$permission_name){
 
         $get_permission = DB::table('role_permission as a')->join('permissions as b','a.permission_id', '=' , 'b.id')->join('permission_category as c','b.per_cate_id','=','c.id')->
         select('a.*','b.title','c.category_name')->where('a.status',1)->where('b.status',1)->where('c.status',1)->where('a.role_id',$role_id)->where('b.title',$permission_name)->first();
-            
+
         if(isset($get_permission->permission_status) && $get_permission->permission_status == 1){
             return 1;
         }else{
@@ -314,7 +314,7 @@ class Global_helper
 
     return $has_permission ? 1 : 2;
 }
- 
+
     public static function Propertylist($type)
     {
         $query = DB::table('properties');
@@ -323,28 +323,28 @@ class Global_helper
         }else{
               $query->where('status', 2 );
         }
-    
+
         return $query->count();
     }
-    
+
     public static function Sellers($type)
     {
         $query = DB::table('users');
         if ($type==1 || $type == 2) {
-            $query->where('is_user_verified', $type)->where('status', 1);
+            $query->where('status', 1);
         }else{
               $query->where('status', 2 );
         }
-    
+
         return $query->count();
     }
 
-  
-    
+
+
     public static function Enquiry($type)
     {
         $query = DB::table('enquiries')->where('status', 1);
-    
+
         if ($type == 1) {
             $query->whereNull('property_id');
         } elseif ($type == 2) {
@@ -352,23 +352,20 @@ class Global_helper
         } else {
             return 0;
         }
-    
+
         return $query->count();
     }
-    
+
     public static function getTablesCount()
     {
         $tables = [
-            'Category' => 'categories',
-            'Amenities' => 'amenities',
-            'Bed_Type' => 'bedtypes',
-            'Banner' => 'banners',
-            'Blog' => 'blogs',
+            'Users' => 'users',
+            'Roles' => 'roles',
+            'Pincode' => 'pincodes',
+            'Booking    ' => 'bookings',
             'Review' => 'property_reviews',
         ];
-    
         $result = [];
-    
         foreach ($tables as $name => $table) {
             $count = DB::table($table)->where('status', 1)->count();
             $result[] = [
@@ -376,7 +373,7 @@ class Global_helper
                 'count' => $count,
             ];
         }
-    
+
         return $result;
     }
 

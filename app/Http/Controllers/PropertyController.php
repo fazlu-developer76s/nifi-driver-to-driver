@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Storage;
 use App\Helpers\Global_helper as Helper;
 use App\Models\Amenities;
 use App\Models\Bedtype;
-use App\Models\PropertyCategoriesModal;
 
 class PropertyController extends Controller
 {
@@ -56,11 +55,15 @@ class PropertyController extends Controller
                 'hotel_name' => 'required|string|max:255',
                 'hotel_address' => 'nullable|string',
                 'hotel_description' => 'nullable|string',
+                'hotel_map_link' => 'nullable|string',
                 'youtube_link' => 'nullable|string',
                 'rating' => 'nullable|string',
+                'state' => 'required|string',
                 'price' => 'required|string',
+                'booking_days' => 'nullable|string',
+                'distance' => 'nullable|string',
+                'location' => 'nullable|string',
                 'hotel_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-                'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
             // $checkData = Property::where('hotel_name', $request->hotel_name)->first();
             // if ($checkData) {
@@ -69,31 +72,17 @@ class PropertyController extends Controller
             $hotel = new Property();
             $hotel->user_id = Auth::user()->id;
             $hotel->category_id = $request->category_id;
-            $hotel->property_category_id = $request->property_category_id;
             $hotel->hotel_name = $request->hotel_name;
             $hotel->hotel_address = $request->hotel_address;
             $hotel->hotel_description = $request->hotel_description;
             $hotel->hotel_map_link = $request->hotel_map_link;
             $hotel->youtube_link = $request->youtube_link;
             $hotel->rating = $request->rating;
-            $hotel->district_tehsil = $request->district_tehsil;
-            $hotel->zipcode = $request->zipcode;
-            $hotel->city_village = $request->city_village;
-            $hotel->area_size = $request->area_size;
-            $hotel->site_specification = $request->site_specification;
+            $hotel->state = $request->state;
             $hotel->price = $request->price;
-            $hotel->markup = $request->markup;
-            $hotel->markup_value_b2c = $request->markup_value_b2c;
-            $hotel->markup_value_b2b = $request->markup_value_b2b;
-            $hotel->extra_info_area_size = $request->extra_info_area_size;
-            $hotel->extra_info_area_size_type = $request->extra_info_area_size_type;
-            $hotel->num_of_open_sides = $request->num_of_open_sides;
+            $hotel->booking_days = $request->booking_days;
+            $hotel->distance = $request->distance;
             $hotel->location = $request->location;
-            if ($request->hasFile('thumbnail')) {
-            $path = $request->file('thumbnail')->store('hotel_images', 'public');
-            $hotel->hotel_image = $path;
-            }
-
             if (Auth::user()->role_id == 1) {
                 $hotel->is_property_verified = 1;
             } else {
@@ -117,9 +106,6 @@ class PropertyController extends Controller
             }
 
             $n = 0;
-            if($request->facilities){
-                
-    
             foreach ($request->facilities as $key => $value) {
 
                 if (!empty($value)) {
@@ -136,8 +122,6 @@ class PropertyController extends Controller
                 }
                 $n++;
             }
-            }
-            
             if ($request->amenities) {
                 foreach ($request->amenities as $amenity) {
                     DB::table('add_amenties')->insert(['property_id' => $hotel->id,  'amenities_id' => $amenity]);
@@ -145,13 +129,11 @@ class PropertyController extends Controller
             }
             return redirect()->route('property')->with('success', 'Property Added Successfully');
         }
-
         $title = "Create Property";
         $get_category = CategoriesModal::where('status', 1)->get();
-        $get_propertycategory = PropertyCategoriesModal::where('status', 1)->get();
         $get_facilities = Facilities::where('status', 1)->get();
         $get_amenities = Amenities::where('status', 1)->get();
-        return view('property.create', compact('title', 'get_category', 'get_facilities', 'get_amenities','get_propertycategory'));
+        return view('property.create', compact('title', 'get_category', 'get_facilities', 'get_amenities'));
     }
     public function edit($id)
     {
@@ -193,8 +175,7 @@ class PropertyController extends Controller
             }
             $get_amenities[] = $ament;
         }
-        $get_propertycategory = PropertyCategoriesModal::where('status', 1)->get();
-        return view('property.create', compact('title', 'hotel', 'get_category', 'get_facilities', 'get_amenities','get_propertycategory'));
+        return view('property.create', compact('title', 'hotel', 'get_category', 'get_facilities', 'get_amenities'));
     }
     public function update(Request $request)
     {
@@ -204,9 +185,15 @@ class PropertyController extends Controller
                 'hotel_name' => 'required|string|max:255',
                 'hotel_address' => 'nullable|string',
                 'hotel_description' => 'nullable|string',
+                'hotel_map_link' => 'nullable|string',
                 'youtube_link' => 'nullable|string',
                 'rating' => 'nullable|string',
-                'price' => 'required|string'
+                'state' => 'required|string',
+                'price' => 'required|string',
+                'booking_days' => 'nullable|string',
+                'distance' => 'nullable|string',
+                'location' => 'nullable|string',
+                'hotel_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
             // $checkData = Property::where('hotel_name', $request->hotel_name)->first();
             // if ($checkData) {
@@ -215,30 +202,17 @@ class PropertyController extends Controller
             $hotel =  Property::findOrFail($request->hidden_id);
             $hotel->user_id = Auth::user()->id;
             $hotel->category_id = $request->category_id;
-            $hotel->property_category_id = $request->property_category_id;
             $hotel->hotel_name = $request->hotel_name;
             $hotel->hotel_address = $request->hotel_address;
             $hotel->hotel_description = $request->hotel_description;
             $hotel->hotel_map_link = $request->hotel_map_link;
             $hotel->youtube_link = $request->youtube_link;
             $hotel->rating = $request->rating;
-            $hotel->district_tehsil = $request->district_tehsil;
-            $hotel->zipcode = $request->zipcode;
-            $hotel->city_village = $request->city_village;
-            $hotel->area_size = $request->area_size;
-            $hotel->site_specification = $request->site_specification;
+            $hotel->state = $request->state;
             $hotel->price = $request->price;
-            $hotel->markup = $request->markup;
-            $hotel->markup_value_b2c = $request->markup_value_b2c;
-            $hotel->markup_value_b2b = $request->markup_value_b2b;
-            $hotel->extra_info_area_size = $request->extra_info_area_size;
-            $hotel->extra_info_area_size_type = $request->extra_info_area_size_type;
-            $hotel->num_of_open_sides = $request->num_of_open_sides;
+            $hotel->booking_days = $request->booking_days;
+            $hotel->distance = $request->distance;
             $hotel->location = $request->location;
-            if ($request->hasFile('thumbnail')) {
-                $path = $request->file('thumbnail')->store('hotel_images', 'public');
-                $hotel->hotel_image = $path;
-            }
             if ($request->hasFile('hotel_images')) {
                 $images = [];
                 foreach ($request->file('hotel_images') as $image) {
@@ -257,7 +231,6 @@ class PropertyController extends Controller
             }
             $delete_all_facilities = DB::table('add_facilities_propery')->where('property_id', $hotel->id)->delete();
             $n = 0;
-            if($request->facilities){
             foreach ($request->facilities as $key => $value) {
 
                 if (!empty($value)) {
@@ -273,7 +246,6 @@ class PropertyController extends Controller
                     }
                 }
                 $n++;
-            }
             }
             $delete_all_amenities = DB::table('add_amenties')->where('property_id', $hotel->id)->delete();
             if ($request->amenities) {
@@ -335,7 +307,6 @@ class PropertyController extends Controller
                 'distance' => 'nullable|string',
                 'location' => 'nullable|string',
                 'hotel_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-                'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
             // $checkData = Property::where('hotel_name', $request->hotel_name)->first();
             // if ($checkData) {
@@ -355,10 +326,6 @@ class PropertyController extends Controller
             $hotel->booking_days = $request->booking_days;
             $hotel->distance = $request->distance;
             $hotel->location = $request->location;
-            if ($request->hasFile('thumbnail')) {
-            $path = $request->file('thumbnail')->store('hotel_images', 'public');
-            $hotel->hotel_image = $path;
-            }
             if (Auth::user()->role_id == 1) {
                 $hotel->is_property_verified = 1;
             } else {
@@ -454,10 +421,6 @@ class PropertyController extends Controller
             $hotel->booking_days = $request->booking_days;
             $hotel->distance = $request->distance;
             $hotel->location = $request->location;
-            if ($request->hasFile('thumbnail')) {
-            $path = $request->file('thumbnail')->store('hotel_images', 'public');
-            $hotel->hotel_image = $path;
-            }
             if ($request->hasFile('hotel_images')) {
                 $images = [];
                 foreach ($request->file('hotel_images') as $image) {

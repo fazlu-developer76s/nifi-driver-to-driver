@@ -5,8 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class JobsEnq extends Model
+class Pincode extends Model
 {
     use HasFactory;
-    protected $table = 'tbl_career_enquiry';
 }

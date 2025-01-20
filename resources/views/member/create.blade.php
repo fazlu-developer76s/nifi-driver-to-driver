@@ -81,6 +81,15 @@
                                             @enderror
                                         </div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Gst No..</label>
+                                            <input class="form-control @error('gst_no') is-invalid @enderror" type="text" name="gst_no" placeholder="Enter Mobile No." value="@if(empty($get_member)) {{ old('gst_no') }} @else {{ (isset($get_member)) ? $get_member->gst_no : '' ; }} @endif" />
+                                            @error('gst_no')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
 
                                     <div class="col-md-6">
                                         <div class="mb-3">
@@ -94,15 +103,17 @@
                                             @enderror
                                         </div>
                                     </div>
+                                    @if(empty($get_member))
                                      <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Password</label>
-                                            <input class="form-control @error('password') is-invalid @enderror" type="text" name="password"  />
+                                            <input class="form-control @error('password') is-invalid @enderror" type="text" name="password" placeholder="Enter Name" value="@if(empty($get_member)) {{ old('password') }} @else {{ (isset($get_member)) ? $get_member->password : '' ; }} @endif" />
                                             @error('password')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="card-footer bg-none d-flex p-3">

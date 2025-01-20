@@ -91,69 +91,7 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Facebook Link</label>
-                                            <input type="url" name="facebook" class="form-control" value="{{ old('facebook', $company->facebook) }}">
-                                            @error('facebook')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Twitter Link</label>
-                                            <input type="url" name="twitter" class="form-control" value="{{ old('twitter', $company->twitter) }}">
-                                            @error('twitter')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Instagram Link</label>
-                                            <input type="url" name="instagram" class="form-control" value="{{ old('instagram', $company->instagram) }}">
-                                            @error('instagram')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">LinkedIn Link</label>
-                                            <input type="url" name="linkedin" class="form-control" value="{{ old('linkedin', $company->linkedin) }}">
-                                            @error('linkedin')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <label class="form-label">Map Link</label>
-                                            <textarea type="url" name="map_link" class="form-control">{{ old('map_link', $company->map_link) }}</textarea>
-                                            @error('map_link')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <label class="form-label">Header Script</label>
-                                            <textarea type="text" name="header_script" class="form-control">{{ old('header_script', $company->header_script) }}</textarea>
-                                            @error('header_script')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <label class="form-label">Footer Script</label>
-                                            <textarea type="text" name="footer_script" class="form-control">{{ old('footer_script', $company->footer_script) }}</textarea>
-                                            @error('footer_script')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
+
                                     {{-- <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Member Status</label>

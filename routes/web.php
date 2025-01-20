@@ -18,30 +18,23 @@ use App\Http\Controllers\BedController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\GallaryController;
-use App\Http\Controllers\ImportController;
-use App\Http\Controllers\JobController;
 use App\Http\Controllers\PagesController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\PermissionCategory;
 use App\Http\Controllers\PermissionsubCategory;
-use App\Http\Controllers\PropertyCategoryController;
+use App\Http\Controllers\PinController;
+use App\Http\Controllers\UnsubscribeController;
 
 Route::get('/', function () {
     return view('auth.login');
 });
 
 Auth::routes();
-
+Route::match(['get', 'post'], '/unsubscribe', [UnsubscribeController::class, 'index'])->name('unsubscribe');
 // Grouping all routes with auth middleware
 Route::middleware(['auth', 'checkRole'])->group(function () {
-    Route::get('/register',function(){
-        redirect(route('login'));
-    });
-    Route::get('/profile-update',[MemberController::class, 'profile_update'])->name('profile.update')->middleware('auth');
-    Route::get('/change-password',[MemberController::class, 'change_password'])->name('change.password')->middleware('auth');
-    Route::post('/update-password',[MemberController::class, 'update_password'])->name('update.password')->middleware('auth');
     // Dashboard Route
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/home', [DashboardController::class, 'index'])->name('home');
@@ -115,12 +108,12 @@ Route::middleware(['auth', 'checkRole'])->group(function () {
     Route::post('/category/update', [CategoryController::class, 'update'])->name('category.update');
     Route::delete('/category/delete/{id}', [CategoryController::class, 'destroy'])->name('category.destroy');
 
-    // Category Route
-    Route::get('/propertycategory', [PropertyCategoryController::class, 'index'])->name('propertycategory');
-    Route::match(['get', 'post'], '/propertycategory/create', [PropertyCategoryController::class, 'create'])->name('propertycategory.create');
-    Route::get('/propertycategory/{id}', [PropertyCategoryController::class, 'edit'])->name('propertycategory.edit');
-    Route::post('/propertycategory/update', [PropertyCategoryController::class, 'update'])->name('propertycategory.update');
-    Route::delete('/propertycategory/delete/{id}', [PropertyCategoryController::class, 'destroy'])->name('propertycategory.destroy');
+    // Pincode Route
+    Route::get('/pincode', [PinController::class, 'index'])->name('pincode');
+    Route::match(['get', 'post'], '/pincode/create', [PinController::class, 'create'])->name('pincode.create');
+    Route::get('/pincode/{id}', [PinController::class, 'edit'])->name('pincode.edit');
+    Route::post('/pincode/update', [PinController::class, 'update'])->name('pincode.update');
+    Route::delete('/pincode/delete/{id}', [PinController::class, 'destroy'])->name('pincode.destroy');
 
     // Testimonals Route
     Route::get('/testimonial', [TestimonialController::class, 'index'])->name('testimonial');
@@ -128,13 +121,6 @@ Route::middleware(['auth', 'checkRole'])->group(function () {
     Route::get('/testimonial/{id}', [TestimonialController::class, 'edit'])->name('testimonial.edit');
     Route::post('/testimonial/update', [TestimonialController::class, 'update'])->name('testimonial.update');
     Route::delete('/testimonial/delete/{id}', [TestimonialController::class, 'destroy'])->name('testimonial.destroy');
-
-    // Job Title Route
-    Route::get('/job', [JobController::class, 'index'])->name('job');
-    Route::match(['get', 'post'], '/job/create', [JobController::class, 'create'])->name('job.create');
-    Route::get('/job/{id}', [JobController::class, 'edit'])->name('job.edit');
-    Route::post('/job/update', [JobController::class, 'update'])->name('job.update');
-    Route::delete('/job/delete/{id}', [JobController::class, 'destroy'])->name('job.destroy');
 
     // Banners Route
     Route::get('/banner', [BannerController::class, 'index'])->name('banner');
@@ -163,13 +149,6 @@ Route::middleware(['auth', 'checkRole'])->group(function () {
     Route::get('/seo/{id}', [SeoController::class, 'edit'])->name('seo.edit');
     Route::post('/seo/update', [SeoController::class, 'update'])->name('seo.update');
     Route::delete('/seo/delete/{id}', [SeoController::class, 'destroy'])->name('seo.destroy');
-
-    // Seo Route
-    Route::get('/import', [ImportController::class, 'index'])->name('import');
-    Route::match(['get', 'post'], '/import/create', [ImportController::class, 'create'])->name('import.create');
-    Route::get('/import/{id}', [ImportController::class, 'edit'])->name('import.edit');
-    Route::post('/import/update', [ImportController::class, 'update'])->name('import.update');
-    Route::delete('/import/delete/{id}', [ImportController::class, 'destroy'])->name('import.destroy');
 
     // Property Route
     Route::get('/property', [PropertyController::class, 'index'])->name('property');
@@ -233,8 +212,12 @@ Route::middleware(['auth', 'checkRole'])->group(function () {
     Route::get('pages/{id}/edit', [PagesController::class, 'edit'])->name('pages.edit');
     Route::post('pages/{id}', [PagesController::class, 'update'])->name('pages.update');
     Route::get('enquiry', [CompanyController::class, 'enquiry'])->name('enquiry');
-    Route::get('career-enquiry', [CompanyController::class, 'career_enquiry'])->name('career.enquiry');
-    Route::delete('career/delete/{id}', [CompanyController::class, 'destroy'])->name('career.destroy');
+    Route::get('booking-list/{id}', [CompanyController::class, 'booking'])->name('booking');
+    Route::get('feedback-list', [CompanyController::class, 'feedback_list'])->name('feedback');
+    Route::get('transaction-list', [CompanyController::class, 'transaction_list'])->name('transaction.list');
+    Route::get('/generate-invoice/{id}', [CompanyController::class, 'generateInvoice'])->name('generate.invoice');
+    Route::post('update-payment-status', [CompanyController::class, 'update_payment_status'])->name('update.payment.status');
+
 
     // enquiry assign
     Route::post('/assign-lead', [LeadController::class, 'assign_lead'])->name('assign.lead');

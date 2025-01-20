@@ -39,6 +39,7 @@
                                         <th class="text-nowrap">Name </th>
                                         <th class="text-nowrap">Email</th>
                                         <th class="text-nowrap">Mobile No.</th>
+                                        <th class="text-nowrap">Gst No.</th>
                                         <th class="text-nowrap">Role</th>
                                         <th class="text-nowrap">Created Date</th>
                                         <th class="text-nowrap">Status</th>
@@ -56,6 +57,7 @@
                                         <td>{{ $member->name }}</td>
                                         <td>{{ $member->email }}</td>
                                         <td>{{ $member->mobile_no }}</td>
+                                        <td>{{ $member->gst_no }}</td>
                                         <td>{{ $member->title }}</td>
                                         <td>{{ \Carbon\Carbon::parse($member->created_at)->format('d F Y h:i A') }}</td>
                                         <td>

@@ -81,6 +81,62 @@
         return false;
     }
 
+    function updatePaymentStatus(id) {
+
+    var csrfToken = $('meta[name="csrf-token"]').attr('content');
+    var transactionAmount = $("#transaction_amount" + id).val();
+    var paymentStatus = $("#payment_status" + id).val();
+    if(paymentStatus == 1){
+        alert('Please Select Paid Option.');
+        return false;
+    }
+    var fileInput = $("#file_upload" + id)[0];
+
+    // Validate transaction amount
+    if (!transactionAmount || isNaN(transactionAmount) || transactionAmount <= 0) {
+        alert('Please enter a valid amount.');
+        return false;
+    }
+
+    // Validate file input
+    if (!fileInput || fileInput.files.length === 0) {
+        alert('Please select a file to upload.');
+        return false;
+    }
+
+    var formData = new FormData();
+    formData.append('_token', csrfToken);
+    formData.append('transaction_amount', transactionAmount);
+    formData.append('payment_status', paymentStatus);
+    formData.append('id', id);
+    formData.append('file', fileInput.files[0]);
+
+    $.ajax({
+        url: "{{ route('update.payment.status') }}",
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        success: function(response) {
+            console.log(response);
+            if (response === "OK") {
+                alert(response.message || "Payment status updated successfully.");
+                window.location.reload();
+            } else {
+                alert('Failed to update payment status: ' + (response.message || 'Unknown error.'));
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error:', error);
+            alert('An error occurred while updating payment status. Please try again.');
+        }
+    });
+
+    return false;
+}
+
+
+
     function is_user_verified(table_name, id) {
         var csrfToken = $('meta[name="csrf-token"]').attr('content');
         if ($("#is_user_verified" + id + "").is(':checked')) {
@@ -144,91 +200,28 @@
     fetchNotes();
 
     function SaveNotes() {
-        var notes = $('#notes').val().trim();
-        var user_id = $('#user_id').val();
         var status = $('#status').val();
         var lead_id = $('#lead_id').val();
-        var hidden_id = $('#hidden_id').val();
-        var route_id = $("#select_route_id").val();
         var csrfToken = $('meta[name="csrf-token"]').attr('content');
-
-        if (notes === '') {
-            Swal.fire("Error!", "Notes Title Required!", "error"); // Correct SweetAlert2 syntax
-            return false;
-        }
-
-
         if (status == 5) {
             if (route_id === '') {
                 Swal.fire("Error!", "Please Select Route!", "error"); // Correct SweetAlert2 syntax
                 return false;
             }
         }
-
         $.ajax({
             url: "{{ route('notes.create') }}",
             type: 'POST',
             data: {
                 _token: csrfToken,
-                title: notes,
-                user_id: user_id,
                 status: status,
                 lead_id: lead_id,
-                route_id: route_id,
-                hidden_id: hidden_id
             },
             success: function(response) {
-                if (response == 2) {
-                    Swal.fire("Error!", "Route Does Not Exist for This Zipcode", "error");
-                    return false;
-                }
-                if(status == 5){
+                if (response == 1) {
                     window.location.reload();
+
                 }
-
-                // if (response == 1) {
-                //     Swal.fire({
-                //         title: "Success!",
-                //         text: "Lead Qualified Successfully!",
-                //         icon: "success",
-                //         timer: 2000,
-                //         showConfirmButton: false
-                //     }).then(function() {
-                //         var routeUrl = "{{ route('lead') }}";
-                //         window.location.href = routeUrl;
-                //     });
-                // }
-
-                let loan_status;
-                switch (status) {
-                    case '1':
-                        loan_status = "Pending";
-                        break;
-                    case '2':
-                        loan_status = "View";
-                        break;
-                    case '3':
-                        loan_status = "Under Discussion";
-                        break;
-                    case '4':
-                        loan_status = "Pending Kyc";
-                        break;
-                    case '5':
-                        loan_status = "Qualified";
-                        break;
-                    case '6':
-                        loan_status = "Rejected";
-                        break;
-                    default:
-                        loan_status = "Unknown";
-                        break;
-                }
-
-                $("#fetch_loan_status").html("<p>" + loan_status + "</p>");
-                console.log(response);
-                fetchNotes();
-                $("#notes").val('');
-                $("#hidden_id").val('');
             },
             error: function(xhr, status, error) {
                 console.error(xhr.responseText);

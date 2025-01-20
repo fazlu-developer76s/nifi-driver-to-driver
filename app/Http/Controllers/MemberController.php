@@ -17,7 +17,7 @@ class MemberController extends Controller
     {
 
         $title = "Member List";
-        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('roles.id','!=',2)->where('users.role_id', '!=',1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
+        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('users.role_id', '!=',1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
         return view('member.index', compact('title', 'allmember'));
     }
 
@@ -94,6 +94,7 @@ class MemberController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'role_id' => 'required',
+                'gst_no' => 'required',
                 'email' => [
                     'required',
                     'email',
@@ -125,6 +126,7 @@ class MemberController extends Controller
             $member = new Member();
             $member->name = $request->name;
             $member->role_id = $request->role_id;
+            $member->gst_no = $request->gst_no;
             $member->email = $request->email;
             $member->mobile_no = $request->mobile_no;
             $member->status = $request->status;
@@ -164,7 +166,6 @@ class MemberController extends Controller
     public function update(Request $request)
     {
         // Validate the incoming request data
-
         $request->validate([
             'name' => 'required|string|max:255',
             'role_id' => 'required',
@@ -208,17 +209,11 @@ class MemberController extends Controller
         $member->email = $request->email;
         $member->mobile_no = $request->mobile_no;
         $member->status = $request->status;
-        if ($request->hasFile('profile_picture')) {
-            $imagePath = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $member->image = $imagePath;
-        }
-        if($request->password){
-            $member->password = Hash::make($request->password);
+        if($request->gst_no){
+            $member->gst_no = $request->gst_no;
         }
         $member->save(); // Use save() to persist the changes
-        if(isset($request->redirect)){
-          return redirect()->route('profile.update')->with('success', 'Profile Updated Successfully');
-        }
+
         // Redirect to the member list with a success message
         return redirect()->route('member')->with('success', 'Member Updated Successfully');
     }
@@ -282,36 +277,4 @@ class MemberController extends Controller
             return redirect()->route('view.member.kyc', $id)->with('errors', 'Error');
         }
     }
-    public function profile_update(){
-        $user_id = Auth::user()->id;
-        $title = "Profile Update";
-        $get_member = Member::where('status', '!=', 3)->where('id', $user_id)->first();
-        return view('member.update_profile', compact('title', 'get_member'));
-    }
-
-    public function  change_password(){
-        $user_id = Auth::user()->id;
-        $title = "Change Password";
-        return view('member.change_password', compact('title', 'user_id'));
-    }
-
-    public function update_password(Request $request){
-
-        $request->validate([
-            'current_password' => ['required', function ($attribute, $value, $fail) {
-                $user = Auth::user();
-                if (!Hash::check($value, $user->password)) {
-                    $fail('The current password is incorrect.');
-                }
-            }],
-            'new_password' => ['required','string','min:8'],
-        ]);
-
-        $user_id = Auth::user()->id;
-        $user = Member::find($user_id);
-        $user->password = Hash::make($request->new_password);
-        $user->save();
-        return redirect()->route('profile.update')->with('success', 'Password Updated Successfully');
-    }
-
 }

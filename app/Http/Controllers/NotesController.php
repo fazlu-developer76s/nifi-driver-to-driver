@@ -12,11 +12,8 @@ class NotesController extends Controller
     public function create(Request $request)
     {
 
-        // $get_lead = DB::table('loan_requests')->where('id',$request->lead_id)->first();
-        // $get_route_id = DB::table('routezips')->where('status',1)->where('zip_code',$get_lead->zip_code)->first();
-        // if(!$get_route_id){
-        //     echo 2; die;
-        // }
+        DB::table('bookings')->where('id', $request->lead_id)->update(['booking_status'=>$request->status]);
+        echo 1; die;
 
         if($request->hidden_id){
             $note_id = $request->hidden_id;

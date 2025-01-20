@@ -6,7 +6,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>{{ (!empty($title)) ? $title : 'Globstay' ; }} </title>
+    <title>{{ (!empty($title)) ? $title : config('app.name', 'Laravel') ; }} </title>
     <style>
         .app-header{
             position: fixed !important;
@@ -34,7 +34,7 @@
             margin-bottom: 0.5em;
         }
         .app-sidebar{
-            background: #67722e !important;
+            background: #0a0236 !important;
             color: black !important;
         }
     </style>

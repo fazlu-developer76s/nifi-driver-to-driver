@@ -37,7 +37,6 @@ Route::post('user/token-status', [AuthController::class, 'getTokenStatus']);
 Route::post('user/signup', [AuthController::class, 'signup']);
 Route::post('user/user-login-otp', [AuthController::class, 'user_otp']);
 Route::post('user/login', [AuthController::class, 'login_bkp']);
-Route::get('fetch-company-info',[ApiController::class, 'fetch_company_info']);
 Route::get('fetch-category',[ApiController::class, 'fetch_category']);
 Route::get('fetch-property',[ApiController::class, 'fetch_property']);
 Route::get('fetch-single-property/{id}',[ApiController::class, 'fetch_single_property']);
@@ -46,34 +45,41 @@ Route::get('fetch-blog',[ApiController::class, 'fetch_blog']);
 Route::get('fetch-banner',[ApiController::class, 'fetch_banner']);
 Route::get('fetch-seo',[ApiController::class, 'fetch_seo']);
 Route::get('fetch-gallary',[ApiController::class, 'fetch_gallary']);
-Route::get('fetch-job-title',[ApiController::class, 'fetch_job_title']);
 Route::get('fetch-pages',[ApiController::class, 'fetch_pages']);
 Route::post('send-enquiry',[ApiController::class, 'send_enquiry']);
-Route::post('send-career-enquiry',[ApiController::class, 'send_career_enquiry']);
 Route::get('fetch-review', [ApiController::class, 'fetch_review']);
 
 Route::middleware(['jwt'])->group(function () {
 
+    Route::get('user/genrate_invoice/{id}', [ApiController::class, 'genrate_invoice']);
+    Route::post('user/upload-profile-picture', [ApiController::class, 'uploadProfilePicture']);
+    Route::get('user/get-user', [ApiController::class, 'get_user']);
+    Route::get('fetch-company-info',[ApiController::class, 'fetch_company_info']);
     // glob stay validate route
     Route::post('user/user-logout', [AuthController::class, 'user_logout']);
     Route::post('user/post-review', [ApiController::class, 'post_review']);
     Route::post('user/property-whislist', [ApiController::class, 'property_whislist']);
-    // Get all properties
-    Route::get('user/properties', [ApiPropertyController::class, 'index']);
-    // Create a new property (GET and POST handled separately in API context)
-    Route::match(['get', 'post'],'user/properties/create', [ApiPropertyController::class, 'create']);
-    // Edit a property (GET for details)
-    Route::get('user/properties/{id}/edit', [ApiPropertyController::class, 'edit']);
-    // Update a property
-    Route::put('user/properties/{id}', [ApiPropertyController::class, 'update']);
-    // Delete a property
-    Route::delete('user/properties/{id}', [ApiPropertyController::class, 'destroy']);
+    Route::get('user/get-transaction', [ApiController::class, 'get_transaction']);
+
+    // vehcile routes
+    Route::get('user/vehicle', [ApiPropertyController::class, 'index']);
+    Route::post('user/vehicle/create', [ApiPropertyController::class, 'create']);
+    Route::post('user/vehicle/update', [ApiPropertyController::class, 'update']);
+    Route::get('user/vehicle/{id}', [ApiPropertyController::class, 'edit']);
+    Route::post('user/vehicle/delete/{id}', [ApiPropertyController::class, 'destroy']);
+
+
     // Check if data exists
     Route::post('user/properties/check', [ApiPropertyController::class, 'check_exist_data']);
     // Delete an image
     Route::post('user/properties/image/delete', [ApiPropertyController::class, 'delete_image']);
 
     Route::post('user/permission', [ApiController::class, 'permission']);
+    Route::post('user/update-profile', [ApiController::class, 'update_profile']);
+    Route::post('user/booking',[ApiController::class, 'booking']);
+    Route::get('user/booking/list',[ApiController::class, 'booking_list']);
+    Route::get('user/booking/{id}',[ApiController::class, 'get_booking']);
+    Route::post('user/booking/update',[ApiController::class, 'booking_update']);
 
 
 
@@ -99,11 +105,12 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('user/fetch-all-users', [MessageController::class, 'fetchUsers']);
 
 
+
     Route::post('user/user-create-pin', [AuthController::class, 'create_pin']);
     Route::get('user/loan-request-list', [LoanRequestController::class, 'loan_request_list']);
     Route::post('user/update-email-mobile', [BorrowerController::class, 'update_email_mobile_request']);
     Route::post('user/update-new-email-mobile', [BorrowerController::class, 'update_new_email_mobile_request']);
-    Route::post('user/update-profile', [BorrowerController::class, 'update_profile']);
+    // Route::post('user/update-profile', [BorrowerController::class, 'update_profile']);
     Route::post('user/approve-update-request', [BorrowerController::class, 'approve_update_request']);
     Route::get('user/update-request-list', [BorrowerController::class, 'update_request_list']);
     Route::post('user/loan-request', [LoanRequestController::class, 'create_loan_request']);

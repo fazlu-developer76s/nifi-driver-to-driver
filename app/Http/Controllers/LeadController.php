@@ -115,20 +115,19 @@ class LeadController extends Controller
     {
 
         $user_id = Auth::user()->id;
+        $get_booking = DB::table('bookings as a')->
+        join('users as b', 'a.user_id','=','b.id')->
+        select('a.*','b.name as user_name','b.email as user_email','b.mobile_no as user_mobile_no')->
+        where('a.status',1)->where('b.status',1)->where('a.id',$id)->first();
         $get_note = DB::table('notes')->where('loan_request_id', $id)->where('title', 'View Lead')->where('user_id', $user_id)->first();
-        // if (!$get_note) {
-            // DB::table('notes')->insert(['loan_request_id' => $id, 'user_id' => $user_id, 'loan_status' => 2, 'title' => "View Lead"]);
-            // DB::table('enquiries')->where('id', $id)->update(['loan_status' => 2]);
-        // }
-        $title = "View Lead";
+        $title = "View Booking";
         $get_lead = DB::table('enquiries')->join('users', 'enquiries.user_id', '=', 'users.id')->select('enquiries.*', 'users.name as username')->where('enquiries.status', '!=', '3')->where('enquiries.id',$id)->orderBy('enquiries.id', 'desc')->first();
         $get_providers = DB::table('providers')->where('status',1)->get();
         $get_assign_id = DB::table('assign_lead')->where('lead_id',$id)->orderBy('id', 'desc')->limit(1)->first();
         $get_user = User::where('status', 1)
         ->where('role_id', 4)
-        ->where('is_user_verified', 1)
         ->get();
-        return view('lead.view', compact('title', 'get_lead','get_providers','get_assign_id','get_user'));
+        return view('lead.view', compact('title', 'get_lead','get_providers','get_assign_id','get_user','get_booking'));
     }
 
     public function kyclead_view($id)

@@ -13,227 +13,129 @@ use Illuminate\Support\Facades\Storage;
 
 class ApiPropertyController extends Controller
 {
-    public function index()
-    {
-        $get_property = DB::table('properties as a')->join('categories as b', 'a.category_id', '=', 'b.id')->select('a.*', 'b.title as category_name')->where('a.status', '!=', '3')->where('b.status', 1)->get();
-        $properties = array();
-        foreach ($get_property as $property) {
-            $property->images = DB::table('properties_images')->where('property_id', $property->id)->where('status', 1)->get();
-            $property->facilities = DB::table('add_facilities_propery as a')->join('facilities as b', 'a.facilities_id', '=', 'b.id')->select('a.*', 'b.title as facility_name')
-                ->where('a.status', '1')->where('a.property_id', $property->id)->where('b.status', 1)->get();
-            $properties[] = $property;
-        }
-        $allproperty = $properties;
-        return response()->json(['status' => 'OK', 'data' => $properties],200);
+   public function index(Request $request)
+{
+    try {
+        $statusFilter = $request->input('status', 1); 
+        $userStatusFilter = $request->input('user_status', 1); 
+        $sortBy = $request->input('sort_by', 'a.created_at');
+        $sortOrder = $request->input('sort_order', 'desc'); 
+        $get_vehicle = DB::table('vehicles as a')
+            ->join('users as b', 'a.user_id', '=', 'b.id')
+            ->select('a.*', 'b.name as user_name')
+            ->where('a.status', $statusFilter)
+            ->where('b.status', $userStatusFilter)->where('a.user_id',$request->user->id)
+            ->orderBy($sortBy, $sortOrder)
+            ->get();
+        return response()->json([
+            'status' => 'OK',
+            'data' => $get_vehicle,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'Error',
+            'message' => 'An error occurred while fetching vehicles.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
 
     public function create(Request $request)
     {
+
         if ($request->method() == 'POST') {
             $validatedData = $request->validate([
-                'category_id' => 'required',
-                'hotel_name' => 'required|string|max:255',
-                'hotel_rate' => 'required|integer',
-                'hotel_address' => 'nullable|string',
-                'hotel_description' => 'nullable|string',
-                'hotel_map_link' => 'nullable|string',
-                'state' => 'required|string',
-                'place' => 'required|string',
-                'price' => 'required|string',
-                'booking_days' => 'nullable|string',
-                'distance' => 'nullable|string',
-                'location' => 'nullable|string',
-                'room_type' => 'nullable|string',
-                'room_size' => 'nullable|string',
-                'hotel_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+                'vehicle_type' => 'required',
+                'vehicle_number' => 'required'
             ]);
-            // $checkData = Property::where('hotel_name', $request->hotel_name)->first();
-            // if ($checkData) {
-            //     return redirect()->route('property.create')->with('error', 'Property with this name already exists.');
-            // }
+            $checkData = Property::where('vehicle_number', $request->vehicle_number)->first();
+            $property_exist = Property::where('user_id', $request->user->id)->first();
+            if ($checkData) {
+                 return response()->json(['status'=>'error','message'=>'Vehicle Number Already Exist'],300);
+            }
             $hotel = new Property();
             $hotel->user_id = $request->user->id;
-            $hotel->category_id = $request->category_id;
-            $hotel->hotel_name = $request->hotel_name;
-            $hotel->hotel_rate = $request->hotel_rate;
-            $hotel->hotel_address = $request->hotel_address;
-            $hotel->hotel_description = $request->hotel_description;
-            $hotel->hotel_map_link = $request->hotel_map_link;
-            $hotel->state = $request->state;
-            $hotel->place = $request->place;
-            $hotel->price = $request->price;
-            $hotel->booking_days = $request->booking_days;
-            $hotel->distance = $request->distance;
-            $hotel->location = $request->location;
-            $hotel->room_type = $request->room_type;
-            $hotel->room_size = $request->room_size;
-            $hotel->is_property_verified = 1;
-            if ($request->hasFile('hotel_images')) {
-                $images = [];
-                foreach ($request->file('hotel_images') as $image) {
-                    $filePath = $image->store('hotel_images', 'public');
-                    $images[] = $filePath;
-                }
-                // $hotel->hotel_images = json_encode($images);
-            }else{
-                $images = array();
+            $hotel->vehicle_type = $request->vehicle_type;
+            $hotel->vehicle_number = $request->vehicle_number;
+            if(!$property_exist){
+             $hotel->is_vehicle_default = 1;
             }
             $hotel->save();
-            $hotel->hotel_url = str_replace(' ', '-', strtolower($hotel->hotel_name)) . $hotel->id;
-            $hotel->save();
-            foreach ($images as $image) {
-                DB::table('properties_images')->insert(['property_id' => $hotel->id,  'image' => $image]);
-            }
-            $filteredArray = array_filter($request->number, function ($value) {
-                return !is_null($value);
-            });
-            $n=0;
-            foreach ($filteredArray as $key => $value) {
-                if (!empty($value)) {
-                    $facilityId = $request->facilities[$n] ?? null;
-                    if ($facilityId) {
-                        DB::table('add_facilities_propery')->insert([
-                            'property_id' => $hotel->id,
-                            'facilities_id' => $facilityId,
-                            'value' => $value,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
-                }
-                $n++;
-            }
-            return response()->json(['status'=>'OK','message'=>'Property Added Successfully'],200);
+            return response()->json(['status'=>'OK','message'=>'Vehicle Added Successfully'],200);
         }
-
-        $get_category = CategoriesModal::where('status', 1)->get();
-        $get_facilities = Facilities::where('status', 1)->get();
-        return response()->json(['status'=>'OK','category'=>$get_category,'facilities'=>$get_facilities]);
 
     }
 
 
-    public function edit($id)
+    public function edit(Request $request , $id)
     {
-        if(!$id){
-            return redirect()->route('property');
-        }
-        $title = "Edit Property";
-        $prop = DB::table('properties as a')->join('categories as b', 'a.category_id', '=', 'b.id')->select('a.*', 'b.title as category_name')->where('a.status', '!=', '3')->where('b.status', 1)->where('a.id', $id)->get();
-        $properties = array();
-        foreach ($prop as $property) {
-            $property->images = DB::table('properties_images')->where('property_id', $property->id)->where('status', 1)->get();
-            $property->facilities = DB::table('add_facilities_propery as a')->join('facilities as b', 'a.facilities_id', '=', 'b.id')->select('a.*', 'b.title as facility_name')
-                ->where('a.status', '1')->where('a.property_id', $property->id)->where('b.status', 1)->get();
-            $properties[] = $property;
-        }
-        $hotel = $properties[0];
-        $get_category = CategoriesModal::where('status', 1)->get();
-        $get_facilities = array();
-        $facilitiestable = Facilities::where('status', 1)->get();
-        foreach ($facilitiestable as $facility) {
-            $get_fac_data = DB::table('add_facilities_propery')->where('property_id', $id)->where('facilities_id', $facility->id)->first();
-            if ($get_fac_data) {
-                $facility->selected = 1;
-                $facility->value = $get_fac_data->value;
-            } else {
-                $facility->selected = 0;
-                $facility->value = 0;
-            }
-            $get_facilities[] = $facility;
-        }
-        return view('property.create', compact('title', 'hotel', 'get_category', 'get_facilities'));
+        try {
+        $statusFilter = $request->input('status', 1); 
+        $userStatusFilter = $request->input('user_status', 1); 
+        $sortBy = $request->input('sort_by', 'a.created_at');
+        $sortOrder = $request->input('sort_order', 'desc'); 
+        $get_vehicle = DB::table('vehicles as a')
+            ->join('users as b', 'a.user_id', '=', 'b.id')
+            ->select('a.*', 'b.name as user_name')
+            ->where('a.status', $statusFilter)->where('a.id',$id)
+            ->where('b.status', $userStatusFilter)
+            ->orderBy($sortBy, $sortOrder)
+            ->get();
+        return response()->json([
+            'status' => 'OK',
+            'data' => $get_vehicle,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'Error',
+            'message' => 'An error occurred while fetching vehicles.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
     }
 
     public function update(Request $request)
     {
-        if ($request->method() == 'POST') {
-            $validatedData = $request->validate([
-                'category_id' => 'required',
-                'hotel_name' => 'required|string|max:255',
-                'hotel_rate' => 'required|integer',
-                'hotel_address' => 'nullable|string',
-                'hotel_description' => 'nullable|string',
-                'hotel_map_link' => 'nullable|string',
-                'state' => 'required|string',
-                'place' => 'required|string',
-                'price' => 'required|string',
-                'booking_days' => 'nullable|string',
-                'distance' => 'nullable|string',
-                'location' => 'nullable|string',
-                'room_type' => 'nullable|string',
-                'room_size' => 'nullable|string',
-                'hotel_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            ]);
-            // $checkData = Property::where('hotel_name', $request->hotel_name)->first();
-            // if ($checkData) {
-            //     return redirect()->route('property.create')->with('error', 'Property with this name already exists.');
-            // }
-            $hotel =  Property::findOrFail($request->hidden_id);
-            $hotel->user_id = Auth::user()->id;
-            $hotel->category_id = $request->category_id;
-            $hotel->hotel_name = $request->hotel_name;
-            $hotel->hotel_rate = $request->hotel_rate;
-            $hotel->hotel_address = $request->hotel_address;
-            $hotel->hotel_description = $request->hotel_description;
-            $hotel->hotel_map_link = $request->hotel_map_link;
-            $hotel->state = $request->state;
-            $hotel->place = $request->place;
-            $hotel->price = $request->price;
-            $hotel->booking_days = $request->booking_days;
-            $hotel->distance = $request->distance;
-            $hotel->location = $request->location;
-            $hotel->room_type = $request->room_type;
-            $hotel->room_size = $request->room_size;
-            $hotel->is_property_verified = 1;
-            if ($request->hasFile('hotel_images')) {
-                $images = [];
-                foreach ($request->file('hotel_images') as $image) {
-                    $filePath = $image->store('hotel_images', 'public');
-                    $images[] = $filePath;
-                }
-                // $hotel->hotel_images = json_encode($images);
-            }else{
-                $images = array();
+           if ($request->method() == 'POST') {
+            // $validatedData = $request->validate([
+            //     'vehicle_type' => 'required',
+            //     'vehicle_number' => 'required'
+            // ]);
+            $checkData = Property::where('vehicle_number', $request->vehicle_number)->where('id','!=',$request->hidden_id)->where('user_id',$request->user->id)->first();
+            if ($checkData) {
+                 return response()->json(['status'=>'error','message'=>'Vehicle Number Already Exist'],300);
             }
+            $hotel = Property::find($request->hidden_id);
+            if($request->is_vehicle_default){
+                Property::where('user_id',$request->user->id)->where('id','!=',$request->hidden_id)->update(['is_vehicle_default'=>"2"]);
+               $hotel->is_vehicle_default = $request->is_vehicle_default;  
+            }
+            if($request->vehicle_type){
+             $hotel->vehicle_type = $request->vehicle_type;
+            }
+             if($request->vehicle_number){
+                 
+            $hotel->vehicle_number = $request->vehicle_number;
+             }
             $hotel->save();
-            $hotel->hotel_url = str_replace(' ', '-', strtolower($hotel->hotel_name)) . $hotel->id;
-            $hotel->save();
-            foreach ($images as $image) {
-                DB::table('properties_images')->insert(['property_id' => $hotel->id,  'image' => $image]);
-            }
-            $delete_all_facilities = DB::table('add_facilities_propery')->where('property_id',$hotel->id)->delete();
-            $filteredArray = array_filter($request->number, function ($value) {
-                return !is_null($value);
-            });
-            $n=0;
-            foreach ($filteredArray as $key => $value) {
-                if (!empty($value)) {
-                    $facilityId = $request->facilities[$n] ?? null;
-                    if ($facilityId) {
-                        DB::table('add_facilities_propery')->insert([
-                            'property_id' => $hotel->id,
-                            'facilities_id' => $facilityId,
-                            'value' => $value,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
-                }
-                $n++;
-            }
-            return redirect()->route('property')->with('success', 'Property Update Successfully');
+            return response()->json(['status'=>'OK','message'=>'Vehicle Update Successfully'],200);
         }
     }
 
 
-    public function destroy($id)
+    public function destroy(Request $request , $id)
     {
-        $property = Property::findOrFail($id);
-        $property->status = 3;
-        $property->update();
-        return redirect()->route('property')->with('success', 'Property deleted successfully.');
+        try {
+            $property = Property::where('id',$id)->update(['status'=>3]);
+           
+             return response()->json(['status'=>'OK','message'=>'Vehicle Delete Successfully'],200);
+        } catch (\Exception $e) {
+            // Handle any exceptions
+            return response()->json(['status'=>'error','message'=>'An error occurred while deleting the vehicle.'],300);
+        }
     }
+
 
     public function check_exist_data($request, $id)
     {

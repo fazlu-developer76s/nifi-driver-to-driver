@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
 use App\Models\User;
 use Firebase\JWT\JWT;
@@ -10,60 +8,54 @@ use Illuminate\Support\Facades\Hash;
 use DB;
 use Carbon\Carbon;
 use Dotenv\Exception\ValidationException;
-
 class AuthController extends Controller
 {
-
     public function signup(Request $request)
     {
-
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'address' => 'required|string|max:255',
             'mobile_no' => [
                 'required',
                 'regex:/^[6-9][0-9]{9}$/',
-            ],
-            'email' => [
-                'required',
-                'email',
-            ],
-
+            ]
         ]);
-        $user = User::where('email', $request->email)
-            ->orWhere('mobile_no', $request->mobile_no)
-            ->first();
-        if ($user) {
-            return response()->json([
-                'status' => "Error",
-                'message' => "Email or Mobile Number already exists",
-            ], 409);
+        if ($request->type == "register") {
+            $user = User::where('mobile_no', $request->mobile_no)->where('status','!=',3)->first();
+            if ($user) {
+                return response()->json([
+                    'status' => "Error",
+                    'message' => "Mobile Number already exists",
+                ], 409);
+            }
         }
-        $user = new User();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->mobile_no = $request->mobile_no;
-        $user->address = $request->address;
-        $user->status = 1;
-        $user->role_id = 2;
-        $user->created_at = now();
-        $user->updated_at = now();
-        $user->save();
+        if($request->type == "login"){
+              $user = User::where('mobile_no', $request->mobile_no)->where('status',1)->first();
+                if (!$user) {
+                    return response()->json([
+                        'status' => "error",
+                        'message' => "User not found. Please sign up to continue.",
+                    ], 409);
+                }
+                if($user->status == 2){
+                return response()->json([
+                        'status' => "error",
+                        'message' => "This user is Inactive.",
+                    ], 409);
+                }
+
+        }
         if ($otp = $this->userOTP($request->mobile_no)) {
-            $this->GenerateOTP($otp, $user->id);
+            $this->GenerateOTP($otp, $request->mobile_no);
             return response()->json([
                 'status' => "OK",
                 'message' => "Please Enter Otp to verify user",
             ], 200);
         }
-
         return response()->json([
-            'status' => "OK",
-            'message' => "User Created Successfully",
+            'status' => "Error",
+            'message' => "something went wrong",
             'data' => $user,
-        ], 201);
+        ], 301);
     }
-
     public function login(Request $request)
     {
         $validated = $request->validate([
@@ -77,7 +69,7 @@ class AuthController extends Controller
                 'min:8',
             ],
         ]);
-        $user = DB::table('users as a')->leftJoin('roles as b', 'a.role_id', 'b.id')->select('a.*', 'b.title as role_type')->where('b.id',2)->where('a.email', $request->email)->first();
+        $user = DB::table('users as a')->leftJoin('roles as b', 'a.role_id', 'b.id')->select('a.*', 'b.title as role_type')->where('b.id', 2)->where('a.email', $request->email)->first();
         if ($user && Hash::check($request->password, $user->password)) {
             $token = $this->createJwtToken($user, $user->role_type);
             if ($token) {
@@ -107,8 +99,8 @@ class AuthController extends Controller
         ]);
         $user = DB::table('users as a')->leftJoin('roles as b', 'a.role_id', 'b.id')->select('a.*', 'b.title as role_type')->where('a.mobile_no', $request->mobile_no)->first();
         if ($user) {
-            if($user->is_user_verified == 2){
-                   return response()->json([
+            if ($user->is_user_verified == 2) {
+                return response()->json([
                     'status' => "OK",
                     'message' => "seller approve pending for admin side",
                 ], 200);
@@ -128,77 +120,98 @@ class AuthController extends Controller
             return response()->json(['error' => 'Invalid credentials'], 401);
         }
     }
-
     public function user_otp(Request $request)
     {
-        $validated = $request->validate([
-            'mobile_no' => [
-                'required',
-                'regex:/^[6-9][0-9]{9}$/',
-            ],
-            'otp' => [
-                'required',
-                'integer',
-                'digits:4',
-            ],
-        ]);
-        $user = User::where('mobile_no', $request->mobile_no)->first();
-        if ($user) {
-            $getOTP = DB::table('tbl_otp')
-                ->where('user_id', $user->id)
-                ->where('status', 1)
-                ->where('otp', $request->otp)
-                ->orderBy('id', 'desc')
-                ->first();
-            if (!$getOTP) {
+        if ($request->type == "register") {
+            $validated = $request->validate([
+                // 'vehicle_type' => 'required',
+                // 'vehicle_number' => 'required',
+                'name' => 'required|string|max:255',
+                'mobile_no' => [
+                    'required',
+                    'regex:/^[6-9][0-9]{9}$/',
+                ],
+                'otp' => [
+                    'required',
+                    'integer',
+                    'digits:4',
+                ]
+            ]);
+        } else {
+            $validated = $request->validate([
+                'mobile_no' => [
+                    'required',
+                    'regex:/^[6-9][0-9]{9}$/',
+                ],
+                'otp' => [
+                    'required',
+                    'integer',
+                    'digits:4',
+                ]
+            ]);
+        }
+        $getOTP = DB::table('tbl_otp')
+            ->where('field_value', $request->mobile_no)
+            ->where('status', 1)
+            ->where('otp', $request->otp)
+            ->orderBy('id', 'desc')
+            ->first();
+        if (!$getOTP) {
+            return response()->json([
+                'status' => "Error",
+                'message' => "Invalid OTP. Please Enter OTP",
+            ], 401);
+        } else {
+            $current_time = Carbon::now();
+            $otpTime = Carbon::parse($getOTP->created_at);
+            if ($current_time->diffInMinutes($otpTime) > 10) {
                 return response()->json([
                     'status' => "Error",
-                    'message' => "Invalid OTP. Please Enter OTP",
+                    'message' => "OTP is expired",
+                    'data' => $request->all()
                 ], 401);
-            } else {
-                $current_time = Carbon::now();
-                $otpTime = Carbon::parse($getOTP->created_at);
-                if ($current_time->diffInMinutes($otpTime) > 10) {
-                    return response()->json([
-                        'status' => "Error",
-                        'message' => "OTP is expired",
-                        'data' => $request->all()
-                    ], 401);
-                }
-                $this->ExpireOTP($user->id);
-                $role_details = DB::table('roles')
-                    ->where('id', $user->role_id)
-                    ->where('status', 1)
-                    ->first();
-
-                $token = $this->createJwtToken($user, $role_details->title);
-                if ($token) {
-                    $this->ExpireToken($user->id);
-                    $this->StoreToken($user->id, $token);
-                }
-                if(isset($user->is_user_verified) && $user->is_user_verified == 1){
-                     DB::table('users')->where('id',$user->id)->update(['is_mobile_verified'=>1]);
-                     return response()->json([
-                    'status' => "OK",
-                    'token' => $token,
-                    'user' => $user,
-                    'role' => $role_details->title
-                ], 200);
-                }else{
-                    DB::table('users')->where('id',$user->id)->update(['is_mobile_verified'=>1]);
-                     return response()->json([
-                    'status' => "OK",
-                    'message' => "Seller Approval pending for admin side"
-                ], 200);
-                }
-
             }
+            $this->ExpireOTP($getOTP->id);
+            if ($request->type == "register") {
+                $user = new User();
+                $user->name = $request->name;
+                if ($request->email) {
+                    $user->email = $request->email;
+                }
+                if ($request->vehicle_type) {
+                    $user->vehicle_type = $request->vehicle_type;
+                }
+                if ($request->vehicle_number) {
+                    $user->vehicle_number = $request->vehicle_number;
+                }
+                $user->mobile_no = $request->mobile_no;
+                $user->status = 1;
+                $user->role_id = 2;
+                $user->created_at = now();
+                $user->updated_at = now();
+                $user->save();
+                $get_user = User::where('mobile_no', $request->mobile_no)->where('status',1)->first();
+            } else {
+                $get_user = User::where('mobile_no', $request->mobile_no)->where('status',1)->first();
+            }
+            $role_details = DB::table('roles')
+                ->where('id', $get_user->role_id)
+                ->where('status', 1)
+                ->first();
+            $token = $this->createJwtToken($get_user, $role_details->title);
+            if ($token) {
+                $this->ExpireToken($get_user->id);
+                $this->StoreToken($get_user->id, $token);
+            }
+            return response()->json([
+                'status' => "OK",
+                'token' => $token,
+                'user' => $get_user,
+                'role' => $role_details->title
+            ], 200);
         }
-        if (!$user) {
-            return response()->json(['error' => 'Invalid credentials'], 401);
-        }
+        return response()->json(['error' => 'Invalid credentials'], 401);
     }
-
     public function resend_otp(Request $request)
     {
         $request->validate([
@@ -212,7 +225,6 @@ class AuthController extends Controller
                 'data' => $request->all()
             ], 401);
         }
-
         if (strlen($request->mobile_no) != 10) {
             return response()->json([
                 'status' => "Error",
@@ -220,12 +232,10 @@ class AuthController extends Controller
                 'data' => $request->all()
             ], 401);
         }
-
         // Find the user by email
         $user = User::where('aadhar_no', $request->aadhar_no)
             ->where('mobile_no', $request->mobile_no)
             ->first();
-
         if ($user) {
             if ($otp = $this->userOTP($request->mobile_no)) {
                 $this->ExpireOTP($user->id);
@@ -237,7 +247,6 @@ class AuthController extends Controller
                 ], 200);
             }
         }
-
         if (!$user) {
             return response()->json([
                 'status' => "Error",
@@ -253,15 +262,17 @@ class AuthController extends Controller
             'role' => $role, // Issuer of the token
             'sub' => $user->id,           // Subject of the token (user ID)
             'iat' => time(),              // Issued at time
-            'exp' => time() + 60 * 60       // Expiration time (1 hour)
+            'exp' => time() + 600000 * 600000       // Expiration time (1 hour)
         ];
-
         // Encode the token
         return JWT::encode($payload, $key, 'HS256');
     }
     public function userOTP($mobile_no)
     {
-        $otp = 1234;
+        if($mobile_no == "9292929298"){
+            $otp = 1234;
+            return $otp;
+        }
         $entity_id = 1701159540601889654;
         $senderId  = "NRSOFT";
         $temp_id   = "1707164805234023036";
@@ -297,12 +308,10 @@ class AuthController extends Controller
         curl_close($ch);
         return $otp;
     }
-
-
-    public function ExpireOTP($user_id)
+    public function ExpireOTP($id)
     {
         $expireOTP = DB::table('tbl_otp')
-            ->where('user_id', $user_id)
+            ->where('id', $id)
             ->where('status', 1)
             ->where('module_type', 1)
             ->where('otp_type', 1)
@@ -311,20 +320,18 @@ class AuthController extends Controller
             return true;
         }
     }
-
-    public function GenerateOTP($otp, $user_id)
+    public function GenerateOTP($otp, $mobile_no)
     {
         $genrateOTP = DB::table('tbl_otp')->insert([
             'otp' => $otp,
-            'user_id' => $user_id, // Assuming you want to associate the OTP with a user
-            'created_at' => now(), // Current timestamp
+            'field_value' => $mobile_no,
+            'created_at' => now(),
             'updated_at' => now(),
         ]);
         if ($genrateOTP) {
             return true;
         }
     }
-
     public function StoreToken($user_id, $token)
     {
         $storeToken = DB::table('tbl_token')->insert([
@@ -335,7 +342,6 @@ class AuthController extends Controller
             'status' => 1, // Token status (1: active, 2: expired)
         ]);
     }
-
     public function CheckToken($user_id, $token)
     {
         $checkToken = DB::table('tbl_token')
@@ -349,7 +355,6 @@ class AuthController extends Controller
             return false;
         }
     }
-
     public function ExpireToken($user_id)
     {
         $expireToken = DB::table('tbl_token')
@@ -360,7 +365,6 @@ class AuthController extends Controller
             return true;
         }
     }
-
     public function user_logout(Request $request)
     {
         $user_id = $request->user->id;
@@ -370,7 +374,6 @@ class AuthController extends Controller
             'message' => "User Logout Successfully"
         ], 200);
     }
-
     public function create_pin(Request $request)
     {
         $request->validate([
@@ -397,7 +400,6 @@ class AuthController extends Controller
             ], 401);
         }
     }
-
     public function update_pin($pin, $user_id)
     {
         $updatePin = User::where('id', $user_id)
@@ -408,7 +410,6 @@ class AuthController extends Controller
             return false;
         }
     }
-
     public function getTokenStatus(Request $request)
     {
         $token = $request->token;
@@ -438,7 +439,6 @@ class AuthController extends Controller
             ], 401);
         }
     }
-
     public function referal(Request $request)
     {
         $user = $request->user;
@@ -462,10 +462,8 @@ class AuthController extends Controller
             'referral_url' => $referralUrl,
         ]);
     }
-
     public function register_referral_user(Request $request)
     {
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'referral_code' => 'required',
@@ -484,7 +482,6 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)
             ->orWhere('mobile_no', $request->mobile_no)
             ->first();
-
         if ($user) {
             return response()->json([
                 'status' => "Error",
