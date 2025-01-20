@@ -22,21 +22,16 @@ use App\Http\Controllers\MessageController;
 |
 */
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
 
+// Driver To Driver stay public route
 
-// Route::post('user/signup', [AuthController::class, 'signup']);
-// Route::post('user/login', [AuthController::class, 'login_bkp']);
-// Route::post('user/user-resend-otp', [AuthController::class, 'resend_otp']);
-Route::post('user/token-status', [AuthController::class, 'getTokenStatus']);
-// Route::get('user/referal-signup', [AuthController::class, 'register_referral_user'])->name('referaluser');
-
-// glob stay public route
 Route::post('user/signup', [AuthController::class, 'signup']);
-Route::post('user/user-login-otp', [AuthController::class, 'user_otp']);
-Route::post('user/login', [AuthController::class, 'login_bkp']);
+Route::post('user/login', [AuthController::class, 'login']);
+Route::post('user/send-mobile-otp',[AuthController::class, 'send_mobile_otp']);
+Route::post('user/send-email-otp',[AuthController::class, 'send_email_otp']);
+Route::post('user/verify-otp', [AuthController::class, 'verify_otp']);
+Route::post('user/token-status', [AuthController::class, 'getTokenStatus']);
+
 Route::get('fetch-category',[ApiController::class, 'fetch_category']);
 Route::get('fetch-property',[ApiController::class, 'fetch_property']);
 Route::get('fetch-single-property/{id}',[ApiController::class, 'fetch_single_property']);
@@ -55,7 +50,7 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('user/upload-profile-picture', [ApiController::class, 'uploadProfilePicture']);
     Route::get('user/get-user', [ApiController::class, 'get_user']);
     Route::get('fetch-company-info',[ApiController::class, 'fetch_company_info']);
-    // glob stay validate route
+    // Driver To Driver stay validate route
     Route::post('user/user-logout', [AuthController::class, 'user_logout']);
     Route::post('user/post-review', [ApiController::class, 'post_review']);
     Route::post('user/property-whislist', [ApiController::class, 'property_whislist']);
