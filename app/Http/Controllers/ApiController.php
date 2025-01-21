@@ -26,9 +26,43 @@ use App\Models\Property;
 use App\Models\PropertyReview;
 use App\Models\Seo;
 use Illuminate\Support\Facades\Mail;
+use Svg\Tag\Rect;
 
 class ApiController extends Controller
 {
+
+    public function get_state(Request $request)
+    {
+        $get_state = DB::table('tbl_state')->where('status',1)->get();
+        if ($get_state) {
+            return response()->json([
+                'status' => 'OK',
+                'message' => 'State Fetched Successfully',
+                'data' => $get_state
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'meesage' => 'data not found'
+            ]);
+        }
+    }
+
+    public function get_city(Request $request , $state_id){
+        $get_city = DB::table('tbl_city')->where('status',1)->where('state_id',$state_id)->get();
+        if($get_city) {
+            return response()->json([
+               'status' => 'OK',
+               'message' => 'City Fetched Successfully',
+                'data' => $get_city
+            ], 200);
+        } else {
+            return response()->json([
+               'status' => 'error',
+               'message' => 'City not found'
+            ]);
+        }
+    }
     public function get_aadhar_otp(Request $post)
     {
         $rules = array(
@@ -467,32 +501,32 @@ class ApiController extends Controller
     public function fetch_property(Request $request)
     {
 
-        if(isset($request->user->id) && $request->user->id){
+        if (isset($request->user->id) && $request->user->id) {
             $user_id = $request->user->id;
-        }else{
-           $user_id = "";
+        } else {
+            $user_id = "";
         }
         if (!isset($request->type)) {
             return response()->json(['status' => 'Error', 'message' => 'Type is required'], 400);
         }
         $type = $request->type;
-        $get_category = CategoriesModal::where('status',1)
+        $get_category = CategoriesModal::where('status', 1)
             ->when($type != "all", function ($query) use ($type) {
                 $query->where('id', $type);
             });
-        $get_cate = $get_category->orderBy('id','asc')->get();
+        $get_cate = $get_category->orderBy('id', 'asc')->get();
         $new_property_get = array();
-        foreach($get_cate as $row){
-            if(!empty($user_id)){
-            $get_property = DB::table('properties as p')->leftJoin('categories as pg','p.category_id','=','pg.id')->leftJoin('whislist_property as c','p.id','=','c.property_id')->select('p.*','pg.title as category_name','c.status as whislist_status')->where('p.status',1)->where('pg.status',1)->where('p.category_id',$row->id)->where('p.is_property_verified',1)->get();
-            }else{
-            $get_property = DB::table('properties as p')->leftJoin('categories as pg','p.category_id','=','pg.id')->select('p.*','pg.title as category_name')->where('p.status',1)->where('pg.status',1)->where('p.category_id',$row->id)->where('p.is_property_verified',1)->get();
+        foreach ($get_cate as $row) {
+            if (!empty($user_id)) {
+                $get_property = DB::table('properties as p')->leftJoin('categories as pg', 'p.category_id', '=', 'pg.id')->leftJoin('whislist_property as c', 'p.id', '=', 'c.property_id')->select('p.*', 'pg.title as category_name', 'c.status as whislist_status')->where('p.status', 1)->where('pg.status', 1)->where('p.category_id', $row->id)->where('p.is_property_verified', 1)->get();
+            } else {
+                $get_property = DB::table('properties as p')->leftJoin('categories as pg', 'p.category_id', '=', 'pg.id')->select('p.*', 'pg.title as category_name')->where('p.status', 1)->where('pg.status', 1)->where('p.category_id', $row->id)->where('p.is_property_verified', 1)->get();
             }
             $get_fac = array();
-            foreach($get_property as $property){
-                $get_faciflties = DB::table('add_facilities_propery as a')->leftJoin('facilities as b','a.facilities_id','=','b.id')->select('a.facilities_id','b.title as facility_name','a.value as facility_value','b.image as facility_image')->where('a.status',1)->where('b.status',1)->where('a.property_id',$property->id)->get();
-                $get_amentities = DB::table('add_amenties as a')->leftJoin('amenities as b','a.amenities_id','=','b.id')->select('a.amenities_id','b.title as amenities_name','b.image as amenities_image')->where('a.status',1)->where('b.status',1)->where('a.property_id',$property->id)->get();
-                $get_sub_img = DB::table('properties_images')->where('property_id',$property->id)->where('status',1)->get();
+            foreach ($get_property as $property) {
+                $get_faciflties = DB::table('add_facilities_propery as a')->leftJoin('facilities as b', 'a.facilities_id', '=', 'b.id')->select('a.facilities_id', 'b.title as facility_name', 'a.value as facility_value', 'b.image as facility_image')->where('a.status', 1)->where('b.status', 1)->where('a.property_id', $property->id)->get();
+                $get_amentities = DB::table('add_amenties as a')->leftJoin('amenities as b', 'a.amenities_id', '=', 'b.id')->select('a.amenities_id', 'b.title as amenities_name', 'b.image as amenities_image')->where('a.status', 1)->where('b.status', 1)->where('a.property_id', $property->id)->get();
+                $get_sub_img = DB::table('properties_images')->where('property_id', $property->id)->where('status', 1)->get();
                 $property->facilities = $get_faciflties;
                 $property->amenities = $get_amentities;
                 $property->sub_img =  $get_sub_img;
@@ -541,7 +575,8 @@ class ApiController extends Controller
         }
     }
 
-    public function fetch_seo(Request $request){
+    public function fetch_seo(Request $request)
+    {
         $get_seo = Seo::where('status', 1)->where('url', $request->url)->first();
         if ($get_seo) {
             return response()->json(['status' => 'OK', 'message' => 'SEO fetched successfully', 'data' => $get_seo], 200);
@@ -550,7 +585,8 @@ class ApiController extends Controller
         }
     }
 
-    public function fetch_gallary(Request $request){
+    public function fetch_gallary(Request $request)
+    {
         $get_gallary = Gallary::where('status', 1)->get();
         if ($get_gallary) {
             return response()->json(['status' => 'OK', 'message' => 'Gallery fetched successfully', 'data' => $get_gallary], 200);
@@ -559,7 +595,8 @@ class ApiController extends Controller
         }
     }
 
-    public function fetch_pages(Request $request){
+    public function fetch_pages(Request $request)
+    {
 
         $get_page = Page::where('page_name', $request->page_name)->first();
         if ($get_page) {
@@ -590,330 +627,335 @@ class ApiController extends Controller
         $enc->email = $request->email;
         $enc->mobile_no = $request->mobile_no;
         $enc->message = $request->message;
-        if($request->property_id){
-        $enc->property_id = $request->property_id;
+        if ($request->property_id) {
+            $enc->property_id = $request->property_id;
         }
-        if($request->location){
-        $enc->location = $request->location;
+        if ($request->location) {
+            $enc->location = $request->location;
         }
-        if($request->budget){
-        $enc->budget = $request->budget;
+        if ($request->budget) {
+            $enc->budget = $request->budget;
         }
-        if($request->plan_date){
-        $enc->plan_date = $request->plan_date;
+        if ($request->plan_date) {
+            $enc->plan_date = $request->plan_date;
         }
         $enc->save();
         DB::table('notes')->insert(['loan_request_id' => $enc->id, 'user_id' => 1, 'loan_status' => 1, 'title' => "Initial Stage"]);
         return response()->json(['status' => 'OK', 'message' => 'Enquiry sent successfully'], 200);
     }
 
-    public function post_review(Request $request){
+    public function post_review(Request $request)
+    {
         $user_id = $request->user->id;
         $review = new PropertyReview();
         $review->user_id = $user_id;
         $review->review = $request->review;
         $review->rating = $request->rating;
         $review->save();
-        return response()->json(['status' => 'OK','message' => 'Review posted successfully'], 200);
+        return response()->json(['status' => 'OK', 'message' => 'Review posted successfully'], 200);
     }
 
-    public function fetch_review(){
-        $reviews = DB::table('property_reviews as a')->join('users as b','a.user_id','=','b.id')->select('a.*','b.name as user_name','b.image as user_image')->where('a.status',1)->where('b.status',1)->get();
-        if($reviews){
+    public function fetch_review()
+    {
+        $reviews = DB::table('property_reviews as a')->join('users as b', 'a.user_id', '=', 'b.id')->select('a.*', 'b.name as user_name', 'b.image as user_image')->where('a.status', 1)->where('b.status', 1)->get();
+        if ($reviews) {
             return response()->json(['status' => 'OK', 'data' => $reviews], 200);
-        }else{
-            return response()->json(['status' => 'Error','message' => 'No reviews found'], 404);
+        } else {
+            return response()->json(['status' => 'Error', 'message' => 'No reviews found'], 404);
         }
     }
 
 
-    public function property_whislist(Request $request){
+    public function property_whislist(Request $request)
+    {
 
         $check_whislist = DB::table('whislist_property')->where('user_id', $request->user->id)->where('property_id', $request->property_id)->first();
-        $add_whislist = DB::table('whislist_property')->insert(['user_id'=>$request->user->id,'property_id'=> $request->property_id]);
-        if($check_whislist){
-            if($check_whislist->status == 1){
-                $update_whislist_status = DB::table('whislist_property')->where('user_id', $request->user->id)->where('property_id', $request->property_id)->update(['status'=>2]);
-            }else{
-                $update_whislist_status = DB::table('whislist_property')->where('user_id', $request->user->id)->where('property_id', $request->property_id)->update(['status'=>1]);
+        $add_whislist = DB::table('whislist_property')->insert(['user_id' => $request->user->id, 'property_id' => $request->property_id]);
+        if ($check_whislist) {
+            if ($check_whislist->status == 1) {
+                $update_whislist_status = DB::table('whislist_property')->where('user_id', $request->user->id)->where('property_id', $request->property_id)->update(['status' => 2]);
+            } else {
+                $update_whislist_status = DB::table('whislist_property')->where('user_id', $request->user->id)->where('property_id', $request->property_id)->update(['status' => 1]);
             }
-        }else{
-            if($add_whislist){
-                return response()->json(['status' => 'OK','message' => 'Property whitelisted successfully'], 200);
-            } else{
-                return response()->json(['status' => 'Error','message' => 'Failed to whitelist property'], 500);
+        } else {
+            if ($add_whislist) {
+                return response()->json(['status' => 'OK', 'message' => 'Property whitelisted successfully'], 200);
+            } else {
+                return response()->json(['status' => 'Error', 'message' => 'Failed to whitelist property'], 500);
             }
         }
     }
 
-    public function fetch_single_property(Request $request , $id){
-        if(isset($request->user->id) && $request->user->id){
-           $user_id = $request->user->id;
-       }else{
-          $user_id = "";
-       }
-       if (!isset($request->cat)) {
-           return response()->json(['status' => 'Error', 'message' => 'Type is required'], 400);
-       }
-       $type = $request->cat;
-       $get_category = CategoriesModal::where('status',1)
-           ->when($type != "all", function ($query) use ($type) {
-               $query->where('id', $type);
-           });
-       $get_cate = $get_category->orderBy('id','asc')->get();
-       $new_property_get = array();
-       foreach($get_cate as $row){
-           if(!empty($user_id)){
-           $get_property = DB::table('properties as p')->leftJoin('categories as pg','p.category_id','=','pg.id')->leftJoin('whislist_property as c','p.id','=','c.property_id')->select('p.*','pg.title as category_name','c.status as whislist_status')->where('p.status',1)->where('pg.status',1)->where('p.category_id',$row->id)->where('p.is_property_verified',1)->where('p.id',$id)->get();
-           }else{
-           $get_property = DB::table('properties as p')->leftJoin('categories as pg','p.category_id','=','pg.id')->select('p.*','pg.title as category_name')->where('p.status',1)->where('pg.status',1)->where('p.category_id',$row->id)->where('p.is_property_verified',1)->where('p.id',$id)->get();
-           }
-           $get_fac = array();
-           foreach($get_property as $property){
-            $get_faciflties = DB::table('add_facilities_propery as a')->leftJoin('facilities as b','a.facilities_id','=','b.id')->select('a.facilities_id','b.title as facility_name','a.value as facility_value','b.image as facility_image')->where('a.status',1)->where('b.status',1)->where('a.property_id',$property->id)->get();
-            $get_amentities = DB::table('add_amenties as a')->leftJoin('amenities as b','a.amenities_id','=','b.id')->select('a.amenities_id','b.title as amenities_name','b.image as amenities_image')->where('a.status',1)->where('b.status',1)->where('a.property_id',$property->id)->get();
-            $get_sub_img = DB::table('properties_images')->where('property_id',$property->id)->where('status',1)->get();
-            $reviews = DB::table('property_reviews as a')
-            ->join('users as b', 'a.user_id', '=', 'b.id')
-            ->leftJoin('properties as c', 'c.id', '=', 'a.property_id') // Added left join
-            ->select(
-                'a.*',
-                'b.name as user_name',
-                'b.image as user_image'
-            )
-            ->where('a.status', 1)
-            ->where('b.status', 1)
-            ->where('c.status', 1)
-            ->where('a.property_id', $property->id)
-            ->get();
-            $property->facilities = $get_faciflties;
-            $property->amenities = $get_amentities;
-            $property->sub_img =  $get_sub_img;
-            $property->review =  $reviews;
-            $get_fac[] = $property;
-           }
+    public function fetch_single_property(Request $request, $id)
+    {
+        if (isset($request->user->id) && $request->user->id) {
+            $user_id = $request->user->id;
+        } else {
+            $user_id = "";
+        }
+        if (!isset($request->cat)) {
+            return response()->json(['status' => 'Error', 'message' => 'Type is required'], 400);
+        }
+        $type = $request->cat;
+        $get_category = CategoriesModal::where('status', 1)
+            ->when($type != "all", function ($query) use ($type) {
+                $query->where('id', $type);
+            });
+        $get_cate = $get_category->orderBy('id', 'asc')->get();
+        $new_property_get = array();
+        foreach ($get_cate as $row) {
+            if (!empty($user_id)) {
+                $get_property = DB::table('properties as p')->leftJoin('categories as pg', 'p.category_id', '=', 'pg.id')->leftJoin('whislist_property as c', 'p.id', '=', 'c.property_id')->select('p.*', 'pg.title as category_name', 'c.status as whislist_status')->where('p.status', 1)->where('pg.status', 1)->where('p.category_id', $row->id)->where('p.is_property_verified', 1)->where('p.id', $id)->get();
+            } else {
+                $get_property = DB::table('properties as p')->leftJoin('categories as pg', 'p.category_id', '=', 'pg.id')->select('p.*', 'pg.title as category_name')->where('p.status', 1)->where('pg.status', 1)->where('p.category_id', $row->id)->where('p.is_property_verified', 1)->where('p.id', $id)->get();
+            }
+            $get_fac = array();
+            foreach ($get_property as $property) {
+                $get_faciflties = DB::table('add_facilities_propery as a')->leftJoin('facilities as b', 'a.facilities_id', '=', 'b.id')->select('a.facilities_id', 'b.title as facility_name', 'a.value as facility_value', 'b.image as facility_image')->where('a.status', 1)->where('b.status', 1)->where('a.property_id', $property->id)->get();
+                $get_amentities = DB::table('add_amenties as a')->leftJoin('amenities as b', 'a.amenities_id', '=', 'b.id')->select('a.amenities_id', 'b.title as amenities_name', 'b.image as amenities_image')->where('a.status', 1)->where('b.status', 1)->where('a.property_id', $property->id)->get();
+                $get_sub_img = DB::table('properties_images')->where('property_id', $property->id)->where('status', 1)->get();
+                $reviews = DB::table('property_reviews as a')
+                    ->join('users as b', 'a.user_id', '=', 'b.id')
+                    ->leftJoin('properties as c', 'c.id', '=', 'a.property_id') // Added left join
+                    ->select(
+                        'a.*',
+                        'b.name as user_name',
+                        'b.image as user_image'
+                    )
+                    ->where('a.status', 1)
+                    ->where('b.status', 1)
+                    ->where('c.status', 1)
+                    ->where('a.property_id', $property->id)
+                    ->get();
+                $property->facilities = $get_faciflties;
+                $property->amenities = $get_amentities;
+                $property->sub_img =  $get_sub_img;
+                $property->review =  $reviews;
+                $get_fac[] = $property;
+            }
 
-           $row->property = $get_property;
-           $new_property_get[] = $row;
-       }
-       return response()->json(['status' => 'Success', 'data' => $new_property_get], 200);
-   }
+            $row->property = $get_property;
+            $new_property_get[] = $row;
+        }
+        return response()->json(['status' => 'Success', 'data' => $new_property_get], 200);
+    }
 
-   public function permission(Request $request){
+    public function permission(Request $request)
+    {
         $role_id = $request->user->role_id;
         $permission_name = $request->title;
-         try {
-        // Fetch the permission data from the database
-        $get_permission = DB::table('role_permission as a')
-            ->join('permissions as b', 'a.permission_id', '=', 'b.id')
-            ->join('permission_category as c', 'b.per_cate_id', '=', 'c.id')
-            ->select('a.*', 'b.title', 'c.category_name')
-            ->where('a.status', 1)
-            ->where('b.status', 1)
-            ->where('c.status', 1)
-            ->where('a.role_id', $role_id)
-            ->where('b.title', $permission_name)
-            ->first();
+        try {
+            // Fetch the permission data from the database
+            $get_permission = DB::table('role_permission as a')
+                ->join('permissions as b', 'a.permission_id', '=', 'b.id')
+                ->join('permission_category as c', 'b.per_cate_id', '=', 'c.id')
+                ->select('a.*', 'b.title', 'c.category_name')
+                ->where('a.status', 1)
+                ->where('b.status', 1)
+                ->where('c.status', 1)
+                ->where('a.role_id', $role_id)
+                ->where('b.title', $permission_name)
+                ->first();
 
-        // Check if permission data exists and if the permission_status is 1
-        if ($get_permission && $get_permission->permission_status == 1) {
+            // Check if permission data exists and if the permission_status is 1
+            if ($get_permission && $get_permission->permission_status == 1) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Permission granted',
+                    'permission_status' => 1
+                ], 200);
+            }
+
             return response()->json([
-                'status' => 'success',
-                'message' => 'Permission granted',
-                'permission_status' => 1
+                'status' => 'error',
+                'message' => 'Permission denied',
+                'permission_status' => 2
             ], 200);
+        } catch (\Exception $e) {
+            // Handle errors and return a proper response
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong: ' . $e->getMessage()
+            ], 500);
         }
+    }
 
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Permission denied',
-            'permission_status' => 2
-        ], 200);
+    public function update_profile(Request $request)
+    {
 
-    } catch (\Exception $e) {
-        // Handle errors and return a proper response
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Something went wrong: ' . $e->getMessage()
-        ], 500);
-    }
-   }
-
-   public function update_profile(Request $request){
-
-    $user_id = $request->user->id;
-    $user = User::findOrFail($request->user->id);
-    if($request->name){
-        $user->name = $request->name;
-    }
-    if($request->email){
-        $user->email = $request->email;
-    }
-    if($request->mobile_no){
-        $user->mobile_no = $request->mobile_no;
-    }
-    if($request->vehicle_type){
-        $user->vehicle_type = $request->vehicle_type;
-    }
-    if($request->vehicle_number){
-        $user->vehicle_number = $request->vehicle_number;
-    }
-    if($request->lat){
-        $user->lat = $request->lat;
-    }
-    if($request->long){
-        $user->long = $request->long;
-    }
-    // if(!empty($request->lat) && !empty($request->long) ){
-    //     $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
-    //     $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->lat}+{$request->long}&key={$apiKey}";
-    //     $response = file_get_contents($url);
-    //     $responseData = json_decode($response, true);
-    //     if (!empty($responseData['results'])) {
-    //         foreach ($responseData['results'][0]['components'] as $key => $value) {
-    //             if ($key === 'postcode') {
-    //               $user->pincode = $value;
-    //             }
-    //         }
-    //     }
-    // }
-    if (!empty($request->lat) && !empty($request->long)) {
-        $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
-        $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->lat}+{$request->long}&key={$apiKey}";
-
-
-        // Fetch API response
-        $response = file_get_contents($url);
-        $responseData = json_decode($response, true);
-
-        if (!empty($responseData['results'])) {
-        $addressComponents = $responseData['results'][0]['components'];
+        $user_id = $request->user->id;
+        $user = User::findOrFail($request->user->id);
+        if ($request->name) {
+            $user->name = $request->name;
         }
-        // Save pincode
-        if (isset($addressComponents['postcode'])) {
-        $user->pincode = $addressComponents['postcode'];
+        if ($request->email) {
+            $user->email = $request->email;
         }
+        if ($request->mobile_no) {
+            $user->mobile_no = $request->mobile_no;
+        }
+        if ($request->vehicle_type) {
+            $user->vehicle_type = $request->vehicle_type;
+        }
+        if ($request->vehicle_number) {
+            $user->vehicle_number = $request->vehicle_number;
+        }
+        if ($request->lat) {
+            $user->lat = $request->lat;
+        }
+        if ($request->long) {
+            $user->long = $request->long;
+        }
+        // if(!empty($request->lat) && !empty($request->long) ){
+        //     $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+        //     $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->lat}+{$request->long}&key={$apiKey}";
+        //     $response = file_get_contents($url);
+        //     $responseData = json_decode($response, true);
+        //     if (!empty($responseData['results'])) {
+        //         foreach ($responseData['results'][0]['components'] as $key => $value) {
+        //             if ($key === 'postcode') {
+        //               $user->pincode = $value;
+        //             }
+        //         }
+        //     }
+        // }
+        if (!empty($request->lat) && !empty($request->long)) {
+            $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+            $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->lat}+{$request->long}&key={$apiKey}";
 
-        // Save formatted address
-        if (isset($responseData['results'][0]['formatted'])) {
-        $user->address = $responseData['results'][0]['formatted'];
-        }
 
-        // Save other components if needed
-        $user->city = $addressComponents['city'] ?? null;
-        $user->state = $addressComponents['state'] ?? null;
-        $user->country = $addressComponents['country'] ?? null;
+            // Fetch API response
+            $response = file_get_contents($url);
+            $responseData = json_decode($response, true);
+
+            if (!empty($responseData['results'])) {
+                $addressComponents = $responseData['results'][0]['components'];
+            }
+            // Save pincode
+            if (isset($addressComponents['postcode'])) {
+                $user->pincode = $addressComponents['postcode'];
+            }
+
+            // Save formatted address
+            if (isset($responseData['results'][0]['formatted'])) {
+                $user->address = $responseData['results'][0]['formatted'];
+            }
+
+            // Save other components if needed
+            $user->city = $addressComponents['city'] ?? null;
+            $user->state = $addressComponents['state'] ?? null;
+            $user->country = $addressComponents['country'] ?? null;
         }
-        if($request->gst_no){
+        if ($request->gst_no) {
             $user->gst_no = $request->gst_no;
         }
-        if($request->status){
+        if ($request->status) {
             $user->status = $request->status;
         }
 
-    $user->save();
-    return response()->json(['status' => 'OK','message' => 'Profile updated successfully'], 200);
-
-   }
-
-   public function booking(Request $request){
-
-    $validated = $request->validate([
-        'booking_date' => 'required',
-        'booking_time' => 'required'
-    ]);
-    $user_id = $request->user->id;
-    $get_user1 = User::find($user_id);
-    $get_user = DB::table('vehicles')->where('user_id',$request->user->id)->where('is_vehicle_default',1)->first();
-    if(!$get_user){
-        return response()->json(['status' => 'error','message' => 'Please Add Vehicle'], 400);
+        $user->save();
+        return response()->json(['status' => 'OK', 'message' => 'Profile updated successfully'], 200);
     }
-    $get_active_bank = DB::table('banks')->where('is_bank_active',1)->first();
-    if(!$get_active_bank){
-        return response()->json(['status' => 'error','message' => 'Add Active Bank'], 400);
-    }
-    $check_service = Pincode::where('pin_code',$get_user1->pincode)->where('status',1)->first();
-    if(!$check_service){
-        return response()->json(['status' => 'error','message' => 'Service not available in your location'], 400);
-    }else{
-        $booking = new Booking();
-        $booking->user_id = $user_id;
-        $booking->booking_date = $request->booking_date;
-        $booking->booking_time = $request->booking_time;
-        $booking->description = $request->description;
-        $booking->vehicle_type =   $get_user->vehicle_type;
-        $booking->vehicle_number =   $get_user->vehicle_number;
-        $booking->soc =   $request->soc;
-        $booking->pincode =   $get_user1->pincode;
-        $booking->country =   $get_user1->country;
-        $booking->state =   $get_user1->state;
-        $booking->city =   $get_user1->city;
-        $booking->address =   $get_user1->address;
-        $booking->name =   $get_user1->name;
-        $booking->email =   $get_user1->email;
-        $booking->mobile_no =   $get_user1->mobile_no;
-        if($request->booking_type)
-        {
-            $booking->booking_type = $request->booking_type;
-        }
-        $booking->save();
-        DB::table('tbl_transaction')->insert([
-            'user_id' => $request->user->id,
-            'booking_id'  => $booking->id,
-            'active_bank_id' => $get_active_bank->id
+
+    public function booking(Request $request)
+    {
+
+        $validated = $request->validate([
+            'booking_date' => 'required',
+            'booking_time' => 'required'
         ]);
-        return response()->json(['status' => 'OK','message' => 'Booking request sent successfully'], 200);
+        $user_id = $request->user->id;
+        $get_user1 = User::find($user_id);
+        $get_user = DB::table('vehicles')->where('user_id', $request->user->id)->where('is_vehicle_default', 1)->first();
+        if (!$get_user) {
+            return response()->json(['status' => 'error', 'message' => 'Please Add Vehicle'], 400);
+        }
+        $get_active_bank = DB::table('banks')->where('is_bank_active', 1)->first();
+        if (!$get_active_bank) {
+            return response()->json(['status' => 'error', 'message' => 'Add Active Bank'], 400);
+        }
+        $check_service = Pincode::where('pin_code', $get_user1->pincode)->where('status', 1)->first();
+        if (!$check_service) {
+            return response()->json(['status' => 'error', 'message' => 'Service not available in your location'], 400);
+        } else {
+            $booking = new Booking();
+            $booking->user_id = $user_id;
+            $booking->booking_date = $request->booking_date;
+            $booking->booking_time = $request->booking_time;
+            $booking->description = $request->description;
+            $booking->vehicle_type =   $get_user->vehicle_type;
+            $booking->vehicle_number =   $get_user->vehicle_number;
+            $booking->soc =   $request->soc;
+            $booking->pincode =   $get_user1->pincode;
+            $booking->country =   $get_user1->country;
+            $booking->state =   $get_user1->state;
+            $booking->city =   $get_user1->city;
+            $booking->address =   $get_user1->address;
+            $booking->name =   $get_user1->name;
+            $booking->email =   $get_user1->email;
+            $booking->mobile_no =   $get_user1->mobile_no;
+            if ($request->booking_type) {
+                $booking->booking_type = $request->booking_type;
+            }
+            $booking->save();
+            DB::table('tbl_transaction')->insert([
+                'user_id' => $request->user->id,
+                'booking_id'  => $booking->id,
+                'active_bank_id' => $get_active_bank->id
+            ]);
+            return response()->json(['status' => 'OK', 'message' => 'Booking request sent successfully'], 200);
+        }
     }
-   }
 
-   public function booking_list(Request $request){
-       $user_id = $request->user->id;
-       $get_book_session = DB::table('bookings as a')
-        ->leftJoin('users as b', 'a.user_id', '=', 'b.id')
-        ->select(
-            'a.*',
-            'b.name as user_name',
-            'b.email as user_email',
-            'b.mobile_no as user_mobile'
-        )
-        ->where('a.status', 1)
-        ->where('b.status', 1)
-        ->where('a.user_id',$user_id)->orderBy('a.id','desc')
-        ->get();
+    public function booking_list(Request $request)
+    {
+        $user_id = $request->user->id;
+        $get_book_session = DB::table('bookings as a')
+            ->leftJoin('users as b', 'a.user_id', '=', 'b.id')
+            ->select(
+                'a.*',
+                'b.name as user_name',
+                'b.email as user_email',
+                'b.mobile_no as user_mobile'
+            )
+            ->where('a.status', 1)
+            ->where('b.status', 1)
+            ->where('a.user_id', $user_id)->orderBy('a.id', 'desc')
+            ->get();
         if ($get_book_session) {
             return response()->json([
                 'status' => 'OK',
                 'message' => 'Book Session Fetched Successfully',
                 'data' => $get_book_session
-            ],200);
-        }else{
+            ], 200);
+        } else {
             return response()->json([
                 'status' => 'error',
-                'meesage'=> 'data not found'
-                ]);
+                'meesage' => 'data not found'
+            ]);
         }
+    }
 
-   }
+    public function get_booking(Request $request, $id)
+    {
 
-   public function get_booking(Request $request, $id){
-
-        $get_booking = DB::table('bookings')->where('id',$id)->first();
-         if ($get_booking) {
+        $get_booking = DB::table('bookings')->where('id', $id)->first();
+        if ($get_booking) {
             return response()->json([
                 'status' => 'OK',
                 'message' => 'Get Book Session Fetched Successfully',
                 'data' => $get_booking
-            ],200);
-        }else{
+            ], 200);
+        } else {
             return response()->json([
                 'status' => 'error',
-                'meesage'=> 'data not found'
-                ]);
+                'meesage' => 'data not found'
+            ]);
         }
+    }
 
-   }
-
-   public function booking_update(Request $request){
+    public function booking_update(Request $request)
+    {
 
         //  $validated = $request->validate([
         //         'booking_date' => 'required',
@@ -921,26 +963,25 @@ class ApiController extends Controller
         //     ]);
         $user_id = $request->user->id;
         $booking = Booking::find($request->hidden_id);
-        if($request->booking_date && $request->booking_time ){
-        $booking->booking_date = $request->booking_date;
-        $booking->booking_time = $request->booking_time;
+        if ($request->booking_date && $request->booking_time) {
+            $booking->booking_date = $request->booking_date;
+            $booking->booking_time = $request->booking_time;
         }
-        if($request->booking_status){
+        if ($request->booking_status) {
             $booking->booking_status = $request->booking_status;
         }
-        if($request->description){
-        $booking->description = $request->description;
+        if ($request->description) {
+            $booking->description = $request->description;
         }
         $booking->save();
-        return response()->json(['status' => 'OK','message' => 'Booking Schedule update successfully'], 200);
-
-   }
-
+        return response()->json(['status' => 'OK', 'message' => 'Booking Schedule update successfully'], 200);
+    }
 
 
-   public function uploadProfilePicture(Request $request)
+
+    public function uploadProfilePicture(Request $request)
     {
-         $user_id = $request->user->id;
+        $user_id = $request->user->id;
         // Validate the uploaded file
         $request->validate([
             'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB Max
@@ -951,7 +992,7 @@ class ApiController extends Controller
             $file = $request->file('profile_picture');
             $filename = uniqid() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('profile-pictures', $filename, 'public');
-            DB::table('users')->where('id',$user_id)->update(['image'=>$path] );
+            DB::table('users')->where('id', $user_id)->update(['image' => $path]);
             // Respond with the file path
             return response()->json([
                 'success' => true,
@@ -966,37 +1007,38 @@ class ApiController extends Controller
         ], 500);
     }
 
-     public function get_user(Request $request){
+    public function get_user(Request $request)
+    {
 
         $user_id = $request->user->id;
-        $get_user = User::where('status',1)->where('id',$user_id)->first();
-        return response()->json(['status' => 'OK','message' => 'User details','data' => $get_user], 200);
+        $get_user = User::where('status', 1)->where('id', $user_id)->first();
+        return response()->json(['status' => 'OK', 'message' => 'User details', 'data' => $get_user], 200);
     }
 
-    public function get_transaction(Request $request){
+    public function get_transaction(Request $request)
+    {
 
-        $get_transaction = DB::table('tbl_transaction')->where('user_id',$request->user->id)->orderBy('id','desc')->get();
+        $get_transaction = DB::table('tbl_transaction')->where('user_id', $request->user->id)->orderBy('id', 'desc')->get();
         $new_arr = array();
-        foreach($get_transaction as $row){
-            $get_user_info = User::where('status',1)->where('id',$row->user_id)->first();
-            $get_booking_info = Booking::where('status',1)->where('id',$row->booking_id)->first();
-            $get_bank_info = DB::table('banks')->where('status',1)->where('id',$row->active_bank_id)->first();
+        foreach ($get_transaction as $row) {
+            $get_user_info = User::where('status', 1)->where('id', $row->user_id)->first();
+            $get_booking_info = Booking::where('status', 1)->where('id', $row->booking_id)->first();
+            $get_bank_info = DB::table('banks')->where('status', 1)->where('id', $row->active_bank_id)->first();
             $row->get_user_info = $get_user_info;
             $row->get_booking_info =  $get_booking_info;
             $row->get_bank_info =  $get_bank_info;
             $new_arr[] = $row;
         }
-       
-            return response()->json([
-                'status' => 'OK',
-                'message' => 'Get Transaction Info',
-                'data' => $new_arr
-            ],200);
-        
 
+        return response()->json([
+            'status' => 'OK',
+            'message' => 'Get Transaction Info',
+            'data' => $new_arr
+        ], 200);
     }
 
-    public function genrate_invoice(Request $request , $id){
+    public function genrate_invoice(Request $request, $id)
+    {
         $query = DB::table('tbl_transaction');
         if (isset($request->type)) {
             $query->where('user_id', $request->type);
@@ -1021,5 +1063,4 @@ class ApiController extends Controller
         // return $pdf->download('invoice.pdf');
         return $pdf->stream('invoice.pdf');
     }
-
 }

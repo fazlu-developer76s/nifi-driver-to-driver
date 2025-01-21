@@ -16,6 +16,7 @@ use App\Http\Controllers\BankController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\BedController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CityController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\GallaryController;
 use App\Http\Controllers\PagesController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\PermissionCategory;
 use App\Http\Controllers\PermissionsubCategory;
 use App\Http\Controllers\PinController;
+use App\Http\Controllers\StateController;
 use App\Http\Controllers\UnsubscribeController;
 
 Route::get('/', function () {
@@ -50,6 +52,18 @@ Route::middleware(['auth', 'checkRole'])->group(function () {
     Route::post('/store-permission_category', [PermissionCategory::class, 'store_permission_category'])->name('store.permission_category');
     Route::get('/edit-permission_category/{id}', [PermissionCategory::class, 'edit_permission_category'])->name('edit.permission_category');
     Route::delete('/destroy-permission_category/{id}', [PermissionCategory::class, 'destroy_permission_category'])->name('destroy.permission_category');
+
+    // State Routes
+    Route::get('/state', [StateController::class, 'index'])->name('state');
+    Route::post('/store-state', [StateController::class, 'store_state'])->name('store.state');
+    Route::get('/edit-state/{id}', [StateController::class, 'edit_state'])->name('edit.state');
+    Route::delete('/destroy-state/{id}', [StateController::class, 'destroy_state'])->name('destroy.state');
+
+    // City Routes
+    Route::get('/city', [CityController::class, 'index'])->name('city');
+    Route::post('/store-city', [CityController::class, 'store_city'])->name('store.city');
+    Route::get('/edit-city/{id}', [CityController::class, 'edit_city'])->name('edit.city');
+    Route::delete('/destroy-city/{id}', [CityController::class, 'destroy_city'])->name('destroy.city');
 
     // Permission Category Routes
     Route::get('/bedtype', [BedController::class, 'index'])->name('bedtype');

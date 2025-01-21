@@ -30,7 +30,7 @@
                             <div class="menu-text">Members</div>
                         </a>
                     </div>
-                    {{-- <div class="menu-item">
+                    <div class="menu-item">
                         <a href="{{ route('approved.member') }}" class="menu-link">
                             <div class="menu-text">Approved Sellers</div>
                         </a>
@@ -39,10 +39,10 @@
                         <a href="{{ route('pending.member') }}" class="menu-link">
                             <div class="menu-text">Pending Sellers</div>
                         </a>
-                    </div> --}}
+                    </div>
                 </div>
             </div>
-            {{-- <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link">
+            <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link">
                     <div class="menu-icon"> <i class="fas fa-list"></i> </div>
                     <div class="menu-text">Manage Permissions</div>
                     <div class="menu-caret"></div>
@@ -59,7 +59,25 @@
                         </a>
                     </div>
                 </div>
-            </div> --}}
+            </div>
+            <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link">
+                    <div class="menu-icon"> <i class="fas fa-list"></i> </div>
+                    <div class="menu-text">Manage State/City</div>
+                    <div class="menu-caret"></div>
+                </a>
+                <div class="menu-submenu">
+                    <div class="menu-item">
+                        <a href="{{ route('state') }}" class="menu-link">
+                            <div class="menu-text">State List</div>
+                        </a>
+                    </div>
+                    <div class="menu-item">
+                        <a href="{{ route('city') }}" class="menu-link">
+                            <div class="menu-text">City List</div>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
             <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
                     <div class="menu-icon"> <i class="fas fa-list"></i> </div>
@@ -91,7 +109,7 @@
                         </a>
                     </div>
                 </div>
-               
+
             </div>
 
             <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
@@ -111,9 +129,9 @@
                         </a>
                     </div>
                 </div>
-               
+
             </div>
-            {{-- <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
+            <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
                     <div class="menu-icon"> <i class="fas fa-list"></i> </div>
                     <div class="menu-text">Category Management</div>
                     <div class="menu-caret"></div>
@@ -125,10 +143,10 @@
                         </a>
                     </div>
                 </div>
-            </div> --}}
+            </div>
 
 
-            {{-- <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
+            <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
                     <div class="menu-icon"> <i class="fas fa-list"></i> </div>
                     <div class="menu-text">Property Management</div>
                     <div class="menu-caret"></div>
@@ -162,8 +180,8 @@
 
 
                 </div>
-            </div> --}}
-            {{-- <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
+            </div>
+            <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
                     <div class="menu-icon"> <i class="fas fa-list"></i> </div>
                     <div class="menu-text">Testimonials</div>
                     <div class="menu-caret"></div>
@@ -232,7 +250,7 @@
                         </a>
                     </div>
                 </div>
-            </div> --}}
+            </div>
             <div class="menu-item has-sub"> <a href="javascript:;" class="menu-link ">
                     <div class="menu-icon"> <i class="fas fa-list"></i> </div>
                     <div class="menu-text">Site Setting</div>
@@ -244,22 +262,22 @@
                             <div class="menu-text">Manage Site Setting</div>
                         </a>
                     </div>
-                    {{-- <div class="menu-item">
+                    <div class="menu-item">
                         <a href="{{ route('seo') }}" class="menu-link ">
                             <div class="menu-text">Manage Seo</div>
                         </a>
-                    </div> --}}
+                    </div>
 
                     <div class="menu-item">
                         <a href="{{ route('feedback') }}" class="menu-link">
                             <div class="menu-text">Feedback List</div>
                         </a>
                     </div>
-                    {{-- <div class="menu-item">
+                    <div class="menu-item">
                         <a href="{{ route('enquiry') }}" class="menu-link">
                             <div class="menu-text">Enquiry List</div>
                         </a>
-                    </div> --}}
+                    </div>
                 </div>
             </div>
 

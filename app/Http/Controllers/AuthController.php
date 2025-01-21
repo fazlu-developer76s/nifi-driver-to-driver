@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use App\Helpers\Global_helper;
 use App\Mail\OtpMail;
 use Illuminate\Http\Request;
@@ -9,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
+
 class AuthController extends Controller
 {
     protected $company_name;
@@ -26,6 +29,20 @@ class AuthController extends Controller
                 'regex:/^[6-9][0-9]{9}$/',
             ]
         ]);
+        $get_user = User::where('status',1)->where('mobile_no',$request->mobile_no)->first();
+        if($get_user && $request->type == "register"){
+            return response()->json([
+                'status' => "ERROR",
+                'message' => "User already registered with this mobile no",
+            ], 409);
+        }
+        if((!$get_user) && ($request->type == "login")){
+            return response()->json([
+                'status' => "ERROR",
+                'message' => "User not found",
+            ], 404);
+        }
+
         $otp = 1234;
         $mobile_no  = $request->mobile_no;
         $type  = $request->type;
@@ -85,6 +102,21 @@ class AuthController extends Controller
                 'email',
             ],
         ]);
+
+        $get_user = User::where('status',1)->where('email',$request->email)->first();
+        if($get_user && $request->type == "register"){
+            return response()->json([
+                'status' => "ERROR",
+                'message' => "User already registered with this email",
+            ], 409);
+        }
+        if((!$get_user) && ($request->type == "login" || $request->type == "forget_password")){
+            return response()->json([
+                'status' => "ERROR",
+                'message' => "User not found",
+            ], 404);
+        }
+
         $otp = 1234;
         $email  = $request->email;
         $type  = $request->type;
@@ -94,6 +126,8 @@ class AuthController extends Controller
         }
         if ($type == "register") {
             $module_type = 2;
+        } else if ($type == "forget_password") {
+            $module_type = 3;
         } else {
             $module_type = 1;
         }
@@ -174,11 +208,6 @@ class AuthController extends Controller
                 'required',
                 'email',
             ],
-            'city' => [
-                'required',
-                'string',
-                'max:100',
-            ],
             'gender' => [
                 'required',
                 'in:male,female,other',
@@ -203,7 +232,6 @@ class AuthController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->mobile_no = $request->mobile_no;
-        $user->city = $request->city;
         $user->gender = $request->gender;
         $user->password = Hash::make($request->password);
         $user->status = 1;
@@ -263,6 +291,12 @@ class AuthController extends Controller
             }
             $this->ExpireOTP($getOTP->id);
             $user = DB::table('users as a')->leftJoin('roles as b', 'a.role_id', 'b.id')->select('a.*', 'b.title as role_type')->where('b.id', 2)->where('a.' . $request->type . '', $request->field_value)->first();
+            if (!$user) {
+                return response()->json([
+                    'status' => "Error",
+                   'message' => "User not found",
+                ], 404);
+            }
             $token = $this->createJwtToken($user, $user->role_type);
             if ($token) {
                 $this->ExpireToken($user->id);
@@ -368,5 +402,70 @@ class AuthController extends Controller
                 'data' => $request->all()
             ], 401);
         }
+    }
+
+    public function forget_password(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+        $user = User::where('email', $request->email)
+            ->where('status', 1)
+            ->first();
+        if (!$user) {
+            return response()->json([
+                'status' => "Error",
+                'message' => "User Not Found",
+            ], 404);
+        }
+        $user->password = Hash::make($request->password);
+        $user->updated_at = now();
+        $user->save();
+        return response()->json([
+            'status' => "OK",
+            'message' => "Password updated successfully",
+        ], 200);
+    }
+    public function update_profile(Request $request)
+    {
+        echo 324234; die;
+        // $user = User::findOrFail($request->user->id);
+        // if ($request->hasFile('vehicle_image')) {
+        //     foreach ($request->file('vehicle_image') as $image) {
+        //         $filePath = $image->store('vehicle_image', 'public');
+        //         DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 2]);
+        //     }
+        // }
+        // if ($request->hasFile('vehicle_with_driver')) {
+        //     foreach ($request->file('vehicle_with_driver') as $image) {
+        //         $filePath = $image->store('vehicle_with_driver', 'public');
+        //         DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 1]);
+        //     }
+        // }
+        $fields = [
+            'name', 'email', 'image', 'mobile_no', 'gender', 'aadhar_no', 'pan_no',
+            'state', 'city', 'town', 'pincode', 'address', 'permanent_state',
+            'permanent_city', 'permanent_town', 'permanent_pincode',
+            'permanent_address', 'vehicle_type', 'vehicle_capicity',
+            'registration_number', 'service_expiry_date', 'dl_number',
+            'dl_front_image', 'dl_back_image', 'rc_number', 'rc_front_image',
+            'rc_back_image', 'ins_number', 'ins_image', 'police_verification'
+        ];
+        $fileFields = [
+            'dl_front_image', 'dl_back_image', 'rc_front_image',
+            'rc_back_image', 'ins_image', 'police_verification'
+        ];
+        foreach ($fields as $field) {
+            if ($fileFields && $request->hasFile($field)) {
+                $file = $request->file($field);
+                $path = $file->store('uploads/profile', 'public');
+                $user->{$field} = $path;
+            } elseif ($request->has($field)) {
+                $user->{$field} = $request->input($field);
+            }
+        }
+        $user->save();
+        return response()->json(['status' => 'OK', 'message' => 'Profile updated successfully'], 200);
     }
 }
