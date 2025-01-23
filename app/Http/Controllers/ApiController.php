@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Mail\Enquirys;
 use App\Models\Booking;
+use App\Models\City;
 use App\Models\Enquiry;
 use App\Models\Gallary;
 use App\Models\Page;
@@ -25,15 +26,16 @@ use App\Models\Pincode;
 use App\Models\Property;
 use App\Models\PropertyReview;
 use App\Models\Seo;
+use App\Models\State;
+use App\Models\Vehicle;
 use Illuminate\Support\Facades\Mail;
-use Svg\Tag\Rect;
 
 class ApiController extends Controller
 {
 
     public function get_state(Request $request)
     {
-        $get_state = DB::table('tbl_state')->where('status',1)->get();
+        $get_state = State::where('status',1)->get();
         if ($get_state) {
             return response()->json([
                 'status' => 'OK',
@@ -49,7 +51,7 @@ class ApiController extends Controller
     }
 
     public function get_city(Request $request , $state_id){
-        $get_city = DB::table('tbl_city')->where('status',1)->where('state_id',$state_id)->get();
+        $get_city = City::where('status',1)->where('state_id',$state_id)->get();
         if($get_city) {
             return response()->json([
                'status' => 'OK',
@@ -60,6 +62,22 @@ class ApiController extends Controller
             return response()->json([
                'status' => 'error',
                'message' => 'City not found'
+            ]);
+        }
+    }
+
+    public function get_vehicle(Request $request){
+        $get_vehicle = Vehicle::where('status',1)->get();
+        if($get_vehicle) {
+            return response()->json([
+               'status' => 'OK',
+               'message' => 'Vehicle Fetched Successfully',
+                'data' => $get_vehicle
+            ], 200);
+        } else {
+            return response()->json([
+               'status' => 'error',
+               'message' => 'Vehicle not found'
             ]);
         }
     }

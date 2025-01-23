@@ -23,6 +23,7 @@ Route::post('user/forget-password', [AuthController::class, 'forget_password']);
 // Get Public Route
 Route::get('get-state', [ApiController::class, 'get_state']);
 Route::get('get-city/{id}', [ApiController::class, 'get_city']);
+Route::get('get-vehicle', [ApiController::class, 'get_vehicle']);
 Route::middleware(['jwt'])->group(function () {
 
     Route::post('user/update-profile', [AuthController::class, 'update_profile']);

@@ -25,7 +25,7 @@ use App\Http\Controllers\SeoController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\PermissionCategory;
 use App\Http\Controllers\PermissionsubCategory;
-use App\Http\Controllers\PinController;
+use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\UnsubscribeController;
 
@@ -123,11 +123,11 @@ Route::middleware(['auth', 'checkRole'])->group(function () {
     Route::delete('/category/delete/{id}', [CategoryController::class, 'destroy'])->name('category.destroy');
 
     // Pincode Route
-    Route::get('/pincode', [PinController::class, 'index'])->name('pincode');
-    Route::match(['get', 'post'], '/pincode/create', [PinController::class, 'create'])->name('pincode.create');
-    Route::get('/pincode/{id}', [PinController::class, 'edit'])->name('pincode.edit');
-    Route::post('/pincode/update', [PinController::class, 'update'])->name('pincode.update');
-    Route::delete('/pincode/delete/{id}', [PinController::class, 'destroy'])->name('pincode.destroy');
+    Route::get('/vehicle', [VehicleController::class, 'index'])->name('vehicle');
+    Route::match(['get', 'post'], '/vehicle/create', [VehicleController::class, 'create'])->name('vehicle.create');
+    Route::get('/vehicle/{id}', [VehicleController::class, 'edit'])->name('vehicle.edit');
+    Route::post('/vehicle/update', [VehicleController::class, 'update'])->name('vehicle.update');
+    Route::delete('/vehicle/delete/{id}', [VehicleController::class, 'destroy'])->name('vehicle.destroy');
 
     // Testimonals Route
     Route::get('/testimonial', [TestimonialController::class, 'index'])->name('testimonial');
