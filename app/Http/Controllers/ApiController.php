@@ -213,6 +213,7 @@ class ApiController extends Controller
             'booking_id'           => 'required',
             'booking_status'       => 'required'
         );
+        DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id , 'booking_id' => $request->booking_id , 'booking_type' => 2 ]);
         $validate = \Myhelper::FormValidator($rules, $request);
         if ($validate != "no") {
             return $validate;

@@ -362,7 +362,7 @@ class Global_helper
             'Users' => 'users',
             'Roles' => 'roles',
             'Pincode' => 'pincodes',
-            'Booking    ' => 'bookings',
+            'Booking    ' => 'tbl_booking',
             'Review' => 'property_reviews',
         ];
         $result = [];
