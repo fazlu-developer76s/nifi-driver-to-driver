@@ -29,6 +29,7 @@ use App\Models\Seo;
 use App\Models\State;
 use App\Models\Vehicle;
 use Illuminate\Support\Facades\Mail;
+use Svg\Tag\Rect;
 
 class ApiController extends Controller
 {
@@ -81,6 +82,150 @@ class ApiController extends Controller
             ]);
         }
     }
+
+    public function create_booking(Request $request){
+
+         $rules = ([
+            'name' => 'required|string|max:255',
+            'email_id' => 'required|email|max:255',
+            'mobile_no' => 'required|string|max:255',
+            'num_of_people' => 'required|integer|min:1',
+            'num_of_lady' => 'nullable|integer|min:0',
+            'num_of_men' => 'nullable|integer|min:0',
+            'num_of_child' => 'nullable|integer|min:0',
+            'pick_up_date' => 'required|date',
+            'pick_up_time' => 'required|string|max:255',
+            // 'pick_up_location' => 'required|string|max:255',
+            'drop_us_location' => 'required|string|max:255',
+            'booking_amount' => 'required|numeric|min:0',
+            'note' => 'nullable|string',
+            'seater' => 'required|integer|min:1',
+        ]);
+        $validate = \Myhelper::FormValidator($rules, $request);
+        if ($validate != "no") {
+            return $validate;
+        }
+        $booking = new Booking();
+        $booking->user_id = $request->user->id;
+        $booking->name = $request->name;
+        $booking->email_id = $request->email_id;
+        $booking->mobile_no = $request->mobile_no;
+        $booking->num_of_people = $request->num_of_people;
+        $booking->num_of_lady = $request->num_of_lady;
+        $booking->num_of_men = $request->num_of_men;
+        $booking->num_of_child = $request->num_of_child;
+        $booking->pick_up_date = $request->pick_up_date;
+        $booking->pick_up_time = $request->pick_up_time;
+        $booking->pick_up_location = $request->pick_up_location;
+        if($request->late){
+            $booking->late = $request->late;
+        }
+        if($request->long){
+            $booking->long = $request->long;
+        }
+
+        if (!empty($request->late) && !empty($request->long)) {
+            $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+            $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->late}+{$request->long}&key={$apiKey}";
+            $response = file_get_contents($url);
+            $responseData = json_decode($response, true);
+            if (!empty($responseData['results'])) {
+                $addressComponents = $responseData['results'][0]['components'];
+            }
+            if (isset($addressComponents['postcode'])) {
+                $booking->pincode = $addressComponents['postcode'];
+            }
+            if (isset($responseData['results'][0]['formatted'])) {
+                $booking->address = $responseData['results'][0]['formatted'];
+            }
+            $booking->city = $addressComponents['city'] ?? null;
+            $booking->state = $addressComponents['state'] ?? null;
+            $booking->country = $addressComponents['country'] ?? null;
+        }
+
+        $booking->drop_us_location = $request->drop_us_location;
+        $booking->booking_status = 1;
+        $booking->booking_amount = $request->booking_amount;
+        $booking->note = $request->note;
+        $booking->seater = $request->seater;
+        $booking->save();
+        DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id , 'booking_id' => $booking->id , 'booking_type' => 1 ]);
+        if ($booking) {
+            return response()->json(['status' => 'OK','message' => 'Booking created successfully'],200);
+        } else {
+            return response()->json(['status' => 'Error','message' => 'Failed to create booking']);
+        }
+
+    }
+
+    public function fetch_booking(Request $request)
+    {
+        // Ensure user exists in request
+        if (!$request->user) {
+            return response()->json(['status' => 'Error', 'message' => 'User not authenticated'], 401);
+        }
+
+        $user_id = $request->user->id;
+        $get_user = User::find($user_id);
+
+        if (!$get_user) {
+            return response()->json(['status' => 'Error', 'message' => 'User not found'], 404);
+        }
+
+        $get_booking = Booking::query()
+            ->where(function ($query) use ($user_id) {
+                $query->where('booking_status', 1)
+                    ->where('status', 1)
+                    ->where('user_id', '!=', $user_id)
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('booking_status', 4)
+                                 ->where('status', 1);
+                    });
+            });
+
+        // Add user-related filters
+        $get_booking->where(function ($query) use ($get_user) {
+            if ($get_user->state) {
+                $query->orWhere('address', 'LIKE', '%' . $get_user->state . '%')
+                      ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->state . '%');
+            }
+            if ($get_user->city) {
+                $query->orWhere('address', 'LIKE', '%' . $get_user->city . '%')
+                      ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->city . '%');
+            }
+            if ($get_user->pincode) {
+                $query->orWhere('address', 'LIKE', '%' . $get_user->pincode . '%')
+                      ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->pincode . '%');
+            }
+            if ($get_user->address) {
+                $query->orWhere('address', 'LIKE', '%' . $get_user->address . '%')
+                      ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->address . '%');
+            }
+        });
+
+        $bookings = $get_booking->get();
+        return response()->json(['status' => 'OK', 'message' => 'Booking fetched successfully', 'data' => $bookings], 200);
+    }
+
+    public function accept_booking(Request $request)
+    {
+        $rules = array(
+            'booking_id'           => 'required',
+            'booking_status'       => 'required'
+        );
+        $validate = \Myhelper::FormValidator($rules, $request);
+        if ($validate != "no") {
+            return $validate;
+        }
+        $booking_status_update = DB::table('tbl_booking')
+            ->where('id', $request->booking_id)
+            ->update(['booking_status' => $request->booking_status , 'accept_user_id' => $request->user->id]);
+        return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully']);
+    }
+
+
+
+
     public function get_aadhar_otp(Request $post)
     {
         $rules = array(
@@ -410,70 +555,9 @@ class ApiController extends Controller
         }
     }
 
-    public function create_booking(Request $request)
-    {
-        $rules = array(
-            'pet_id'       => 'required',
-            'booking_date'       => 'required',
-            'booking_time'       => 'required',
-        );
-        $validate = \Myhelper::FormValidator($rules, $request);
-        if ($validate != "no") {
-            return $validate;
-        }
-        $pet_id = $request->pet_id;
-        $booking_date = $request->booking_date;
-        $booking_time = $request->booking_time;
-        $description  = $request->description;
-        $insert_booking = DB::table('tbl_pet_bookings')->insert([
-            'pet_id' => $pet_id,
-            'booking_date' => $booking_date,
-            'booking_time' => $booking_time,
-            'description' => $description,
-            'customer_id' => $request->user->id
-        ]);
-        if ($insert_booking) {
-            return response()->json(['status' => 'OK', 'message' => 'Booking created successfully']);
-        } else {
-            return response()->json(['status' => 'Error', 'message' => 'Failed to create booking']);
-        }
-    }
 
-    public function fetch_booking(Request $request)
-    {
 
-        $booking = DB::table('pet_category')->where('user_id', $request->user->id)->where('status', 1)->orderBy('id', 'desc')->get();
 
-        $get_array = array();
-        if (!empty($booking)) {
-
-            foreach ($booking as $book) {
-                $book->get_booking = DB::table('tbl_pet_bookings as a')->join('users as b', 'a.customer_id', '=', 'b.id')->select('b.name as user_name', 'a.*')->where('a.status', 1)->where('b.status', 1)->orderBy('id', 'desc')->get();
-                $get_array[] = $book;
-            }
-
-            return response()->json(['status' => 'OK', 'message' => 'Booking fetched successfully', 'data' => $get_array]);
-        } else {
-            return response()->json(['status' => 'Error', 'message' => 'No booking found']);
-        }
-    }
-
-    public function accept_booking(Request $request)
-    {
-
-        $rules = array(
-            'id'       => 'required',
-            'booking_status'       => 'required'
-        );
-        $validate = \Myhelper::FormValidator($rules, $request);
-        if ($validate != "no") {
-            return $validate;
-        }
-        $booking_status_update = DB::table('tbl_pet_bookings')
-            ->where('id', $request->id)
-            ->update(['booking_status' => $request->booking_status]);
-        return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully']);
-    }
 
     public function check_exist_data($request, $id)
     {

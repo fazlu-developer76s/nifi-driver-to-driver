@@ -27,6 +27,11 @@ Route::get('get-vehicle', [ApiController::class, 'get_vehicle']);
 Route::middleware(['jwt'])->group(function () {
 
     Route::post('user/update-profile', [AuthController::class, 'update_profile']);
+    // Booking Route
+    Route::post('user/create-booking', [ApiController::class, 'create_booking']);
+    Route::get('user/fetch-booking', [ApiController::class, 'fetch_booking']);
+    Route::post('user/accept-booking', [ApiController::class, 'accept_booking']);
+
 
     Route::get('user/genrate_invoice/{id}', [ApiController::class, 'genrate_invoice']);
     Route::post('user/upload-profile-picture', [ApiController::class, 'uploadProfilePicture']);

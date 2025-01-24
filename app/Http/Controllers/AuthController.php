@@ -318,7 +318,7 @@ class AuthController extends Controller
             'role' => $role,
             'sub' => $user->id,
             'iat' => time(),
-            'exp' => time() + 600, // Set a proper expiration time in seconds (e.g., 10 minutes)
+            'exp' => time() + 600000, // Set a proper expiration time in seconds (e.g., 10 minutes)
         ];
         return JWT::encode($payload, $key, 'HS256');
     }
