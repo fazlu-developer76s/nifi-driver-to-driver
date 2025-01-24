@@ -31,6 +31,8 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('user/create-booking', [ApiController::class, 'create_booking']);
     Route::get('user/fetch-booking', [ApiController::class, 'fetch_booking']);
     Route::post('user/accept-booking', [ApiController::class, 'accept_booking']);
+    Route::get('user/fetch-my-booking/{id}', [ApiController::class, 'fetch_my_booking']);
+    Route::get('user/wallet-statement', [ApiController::class, 'wallet_statement']);
 
 
     Route::get('user/genrate_invoice/{id}', [ApiController::class, 'genrate_invoice']);
