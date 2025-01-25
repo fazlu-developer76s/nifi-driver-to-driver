@@ -214,142 +214,80 @@ class ApiController extends Controller
         return response()->json(['status' => 'OK', 'message' => 'Booking fetched successfully', 'data' => $bookings], 200);
     }
 
-    public function accept_booking(Request $request)
-{
-    // Validation rules
-    $rules = [
-        'booking_id'     => 'required|exists:tbl_booking,id',
-        'booking_status' => 'required|in:2,3,4', // Allowed statuses
-    ];
-
-    // Validate input
-    $validate = \Myhelper::FormValidator($rules, $request);
-    if ($validate != "no") {
-        return $validate;
-    }
-
-    // Fetch booking details
-    $get_booking = Booking::find($request->booking_id);
-    if (!$get_booking) {
-        return response()->json(['status' => 'error', 'message' => 'Booking not found'], 404);
-    }
-
-    // Calculate booking percentage amount
-    $get_booking_percentage_amount = ($get_booking->booking_amount * $get_booking->booking_percentage) / 100 + $get_booking->booking_tax;
-
-    // Fetch user and admin wallets
-    $get_user_wallet = DB::table('users')->where('status', 1)->where('id', $request->user->id)->first();
-    $get_admin_wallet = DB::table('users')->where('status', 1)->where('id', 1)->first();
-
-    if (!$get_user_wallet || !$get_admin_wallet) {
-        return response()->json(['status' => 'error', 'message' => 'User or admin wallet not found'], 404);
-    }
-
-    $wallet_amount_admin = $get_user_wallet->reserve_amount + $get_admin_wallet->wallet_amount;
-
-    // Calculate post-booking amounts
-    $post_user_booking_amount = ($get_user_wallet->reserve_amount * $get_booking->booking_post_percentage) / 100 - $get_booking->booking_post_tds;
-    $final_admin_amount = $wallet_amount_admin - $post_user_booking_amount;
-
-    // Handle cases where a user accepts the booking
-    if (isset($get_booking->accept_user_id)) {
-        $get_post_booking_user = DB::table('users')->where('status', 1)->where('id', $get_booking->user_id)->first();
-        if (!$get_post_booking_user) {
-            return response()->json(['status' => 'error', 'message' => 'Post booking user not found'], 404);
+    public function accept_booking(Request $request ,$booking_id)
+    {
+        $check_exist_booking = Booking::where('accept_user_id',$request->user->id)->where('status',1)->where('booking_status',2)->first();
+        if($check_exist_booking){
+            return response()->json(['status' => 'Error','message' => 'You have already accepted a booking'], 400);
         }
-        $post_user_wallet = $get_post_booking_user->wallet_amount + $post_user_booking_amount;
+        $get_booking = Booking::where('id', $booking_id)->first();
+        $get_booking_percentage_amount =  ($get_booking->booking_amount * $get_booking->booking_percentage) / 100 + $get_booking->booking_tax;
+        $get_user_wallet = DB::table('users')->where('status', 1)->where('id', $request->user->id)->first();
+        if ($get_user_wallet->wallet_amount >= $get_booking_percentage_amount) {
+            $main_wallet = $get_user_wallet->wallet_amount - $get_booking_percentage_amount;
+            DB::table('users')->where('id', $request->user->id)->update(['wallet_amount' => $main_wallet,  'reserve_amount' => $get_booking_percentage_amount, 'withdraw_amount' => $main_wallet, 'updated_at' => date('Y-m-d H:i:s')]);
+            DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id, 'booking_id' => $booking_id, 'booking_type' => 2]);
+            DB::table('tbl_booking')->where('id', $booking_id)->update(['booking_status' => 2 , 'accept_user_id' => $request->user->id]);
+            DB::table('tbl_statement')->insert(['user_id' => $request->user->id, 'booking_id' => $get_booking->id, 'transaction_type' => 1, 'payment_type' => 2, 'amount' => $get_booking_percentage_amount , 'payment_status' => 3]);
+            return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
+        }
     }
 
-    // Handle booking status: Accepted (3)
-    if ($request->booking_status == 3) {
-        $this->updateWalletsAndLogs(
-            $request->user->id,
-            $get_booking->id,
-            $final_admin_amount,
-            $post_user_wallet ?? 0,
-            $get_post_booking_user->id ?? null,
-            $post_user_booking_amount
-        );
+    public function complete_booking(Request $request , $booking_id)
+    {
+        $get_booking = Booking::where('id', $booking_id)->first();
+        if($get_booking->booking_status != 2){
+            return response()->json(['status' => 'Error','message' => 'Booking status is not accepted'], 400);
+        }
+        $booking_accept_user = DB::table('users')->where('status', 1)->where('id', $get_booking->accept_user_id)->first();
+        $get_admin_wallet = DB::table('users')->where('status', 1)->where('id',1)->first();
+        $booking_post_user = DB::table('users')->where('status', 1)->where('id', $get_booking->user_id)->first();
+        $post_user_commision =   ($booking_accept_user->reserve_amount * $get_booking->booking_post_percentage) /  100 - $get_booking->booking_post_tds ;
+        $final_post_user_commision = $booking_post_user->wallet_amount + $post_user_commision;
+        $admin_commision = $booking_accept_user->reserve_amount - $post_user_commision;
+        $final_admin_commision = $get_admin_wallet->wallet_amount + $admin_commision;
+        // accept user booking
+        DB::table('users')->where('id', $get_booking->accept_user_id)->update(['reserve_amount' => 0, 'withdraw_amount' => 0 ,'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->where('user_id' , $get_booking->accept_user_id)->where('booking_id' , $get_booking->id)->update(['payment_status' => 1]);
+        // admin commision user booking
+        DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision,'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 2, 'payment_type' => 1, 'amount' => $admin_commision , 'payment_status' => 1]);
+        DB::table('tbl_booking_log')->insert(['user_id' => $get_booking->accept_user_id, 'booking_id' => $get_booking->id, 'booking_type' => 3]);
+        DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 3 ]);
+        // post user commission
+        DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id, 'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
+        DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision,'updated_at' => date('Y-m-d H:i:s')]);
+        return response()->json(['status' => 'OK','message' => 'Booking status updated successfully'], 200);
 
-        return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
+    }
+    public function cancel_booking(Request $request , $booking_id)
+    {
+        $get_booking = Booking::where('id', $booking_id)->first();
+        if($get_booking->booking_status != 2){
+            return response()->json(['status' => 'Error','message' => 'Booking status is not accepted'], 400);
+        }
+        $booking_accept_user = DB::table('users')->where('status', 1)->where('id', $get_booking->accept_user_id)->first();
+        $get_admin_wallet = DB::table('users')->where('status', 1)->where('id',1)->first();
+        $booking_post_user = DB::table('users')->where('status', 1)->where('id', $get_booking->user_id)->first();
+        $post_user_commision =   ($booking_accept_user->reserve_amount * $get_booking->booking_post_percentage) /  100 - $get_booking->booking_post_tds ;
+        $final_post_user_commision = $booking_post_user->wallet_amount + $post_user_commision;
+        $admin_commision = $booking_accept_user->reserve_amount - $post_user_commision;
+        $final_admin_commision = $get_admin_wallet->wallet_amount + $booking_accept_user->reserve_amount;
+        // accept user booking
+        DB::table('users')->where('id', $get_booking->accept_user_id)->update(['reserve_amount' => 0, 'withdraw_amount' => 0 ,'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->where('user_id' , $get_booking->accept_user_id)->where('booking_id' , $get_booking->id)->update(['payment_status' => 1]);
+        // admin commision user booking
+        DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision,'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 5, 'payment_type' => 1, 'amount' => $booking_accept_user->reserve_amount , 'payment_status' => 1]);
+        DB::table('tbl_booking_log')->insert(['user_id' => $get_booking->accept_user_id, 'booking_id' => $get_booking->id, 'booking_type' => 4]);
+        DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 4 ]);
+        // post user commission
+        // DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id, 'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
+        // DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision,'updated_at' => date('Y-m-d H:i:s')]);
+        return response()->json(['status' => 'OK','message' => 'Booking status updated successfully'], 200);
+
     }
 
-    // Handle booking status: Rejected (4)
-    if ($request->booking_status == 4) {
-        DB::table('users')->where('id', $request->user->id)->update([
-            'reserve_amount' => 0,
-            'withdraw_amount' => 0,
-            'updated_at' => now()
-        ]);
-
-        DB::table('users')->where('id', 1)->update([
-            'wallet_amount' => $wallet_amount_admin,
-            'updated_at' => now()
-        ]);
-
-        DB::table('tbl_statement')->insert([
-            'user_id' => 1,
-            'transaction_type' => 5,
-            'payment_type' => 1,
-            'amount' => $wallet_amount_admin,
-            'payment_status' => 1
-        ]);
-
-        DB::table('tbl_booking_log')->insert([
-            'user_id' => $request->user->id,
-            'booking_id' => $request->booking_id,
-            'booking_type' => 4
-        ]);
-
-        DB::table('tbl_booking')->where('id', $request->booking_id)->update([
-            'booking_status' => $request->booking_status
-        ]);
-
-        DB::table('tbl_statement')
-            ->where('user_id', $request->user->id)
-            ->where('booking_id', $get_booking->id)
-            ->update(['payment_status' => 1]);
-
-        return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
-    }
-
-    // Handle insufficient wallet balance
-    if ($get_user_wallet->wallet_amount < $get_booking_percentage_amount) {
-        return response()->json(['status' => 'error', 'message' => 'Insufficient wallet balance'], 400);
-    }
-
-    // Update wallet and booking status for other cases
-    $main_wallet = $get_user_wallet->wallet_amount - $get_booking_percentage_amount;
-
-    DB::table('users')->where('id', $request->user->id)->update([
-        'wallet_amount' => $main_wallet,
-        'reserve_amount' => $get_booking_percentage_amount,
-        'withdraw_amount' => $main_wallet,
-        'updated_at' => now()
-    ]);
-
-    DB::table('tbl_booking_log')->insert([
-        'user_id' => $request->user->id,
-        'booking_id' => $request->booking_id,
-        'booking_type' => 2
-    ]);
-
-    DB::table('tbl_booking')->where('id', $request->booking_id)->update([
-        'booking_status' => $request->booking_status,
-        'accept_user_id' => $request->user->id
-    ]);
-
-    DB::table('tbl_statement')->insert([
-        'user_id' => $request->user->id,
-        'booking_id' => $get_booking->id,
-        'transaction_type' => 1,
-        'payment_type' => 2,
-        'amount' => $get_booking_percentage_amount,
-        'payment_status' => 3
-    ]);
-
-    return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
-}
 
 /**
  * Update wallets and logs for booking acceptance.

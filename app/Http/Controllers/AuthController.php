@@ -46,7 +46,7 @@ class AuthController extends Controller
         $otp = 1234;
         $mobile_no  = $request->mobile_no;
         $type  = $request->type;
-        if ($mobile_no != "7428059960") {
+        if ($mobile_no != "7428059960" && $mobile_no != "7428059961") {
             $entity_id = 1701159540601889654;
             $senderId  = "NRSOFT";
             $temp_id   = "1707164805234023036";
