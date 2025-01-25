@@ -76,11 +76,9 @@
                                                 <i class="fa fa-eye"></i>
                                             </a>
                                             @endif
-                                            @if($firstSegment = Request::segment(1) ===  "userlocation")
-                                            <a href="{{ route('member.view', $member->id) }}" class="text-primary me-2">
-                                                <i class="fa fa-map-marker"></i>
+                                            <a href="{{ route('member.view', $member->id) }}" class="text-warning me-2" target="_blank">
+                                                <i class="fa fa-eye"></i>
                                             </a>
-                                            @endif
                                             @if($firstSegment = Request::segment(1) !=  "borrower" && $firstSegment = Request::segment(1) !=  "userlocation")
                                             <a href="{{ route('member.edit', $member->id) }}" class="text-primary me-2">
                                                 <i class="fa fa-edit"></i>

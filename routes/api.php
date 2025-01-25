@@ -35,11 +35,12 @@ Route::middleware(['jwt'])->group(function () {
     Route::get('user/complete-booking/{id}', [ApiController::class, 'complete_booking']);
     Route::get('user/fetch-my-booking/{id}', [ApiController::class, 'fetch_my_booking']);
     Route::get('user/wallet-statement', [ApiController::class, 'wallet_statement']);
+    Route::get('user/get-user', [ApiController::class, 'get_user']);
+    Route::get('user/about_us', [ApiController::class, 'about_us']);
 
 
     Route::get('user/genrate_invoice/{id}', [ApiController::class, 'genrate_invoice']);
     Route::post('user/upload-profile-picture', [ApiController::class, 'uploadProfilePicture']);
-    Route::get('user/get-user', [ApiController::class, 'get_user']);
     Route::get('fetch-company-info',[ApiController::class, 'fetch_company_info']);
     // Driver To Driver stay validate route
     Route::post('user/user-logout', [AuthController::class, 'user_logout']);

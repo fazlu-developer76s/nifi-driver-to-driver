@@ -43,7 +43,7 @@ class AuthController extends Controller
             ], 404);
         }
 
-        $otp = 1234;
+        $otp = 123456;
         $mobile_no  = $request->mobile_no;
         $type  = $request->type;
         if ($mobile_no != "7428059960" && $mobile_no != "7428059961") {
@@ -51,7 +51,7 @@ class AuthController extends Controller
             $senderId  = "NRSOFT";
             $temp_id   = "1707164805234023036";
             $userid = "NERASOFT1";
-            $otp = rand(1000, 9999);
+            $otp = rand(100000, 999999);
             $request = "Login Request";
             $password = 111321;
             $temp = "Dear User Your OTP For Login in sixcash is $otp Valid For 10 Minutes. we request you to don't share with anyone .Thanks NSAFPL";
@@ -117,11 +117,11 @@ class AuthController extends Controller
             ], 404);
         }
 
-        $otp = 1234;
+        $otp = 123456;
         $email  = $request->email;
         $type  = $request->type;
         if ($email != "fazlu.developer@gmail.com") {
-            $otp = rand(1000, 9999);
+            $otp = rand(100000, 999999);
             Mail::to($email)->send(new OtpMail($otp, $this->company_email, $this->company_name, $this->company_email));
         }
         if ($type == "register") {
@@ -155,12 +155,12 @@ class AuthController extends Controller
     public function verify_otp(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required',
+            // 'type' => 'required',
             'field_value' => 'required',
             'otp' => [
                 'required',
                 'integer',
-                'digits:4',
+                'digits:6',
             ],
         ]);
         $getOTP = DB::table('tbl_otp')
@@ -208,16 +208,27 @@ class AuthController extends Controller
                 'required',
                 'email',
             ],
-            'gender' => [
-                'required',
-                'in:male,female,other',
-            ],
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-            ],
+            // 'gender' => [
+            //     'required',
+            //     'in:male,female,other',
+            // ],
+            // 'password' => [
+            //     'required',
+            //     'string',
+            //     'min:8',
+            // ],
         ]);
+        $get_mobile_otp = DB::table('tbl_otp')->where('field_value',$request->mobile_no)->orderBy('id','desc')->first();
+        $current_time = Carbon::now();
+        $otpTime = Carbon::parse($getOTP->created_at);
+        if ($current_time->diffInMinutes($otpTime) > 10) {
+            return response()->json([
+                'status' => "Error",
+                'message' => "OTP is expired",
+                'data' => $request->all()
+            ], 401);
+        }
+
         $user = User::where(function ($query) use ($request) {
             $query->where('mobile_no', $request->mobile_no)
                 ->orWhere('email', $request->email);
@@ -265,7 +276,7 @@ class AuthController extends Controller
             'otp' => [
                 'required',
                 'integer',
-                'digits:4',
+                'digits:6',
             ],
         ]);
         $getOTP = DB::table('tbl_otp')

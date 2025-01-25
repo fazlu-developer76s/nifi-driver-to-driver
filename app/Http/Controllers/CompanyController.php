@@ -32,6 +32,10 @@ class CompanyController extends Controller
             'address' => 'required|string|max:500',
             'email' => 'required|email',
             'mobile' => 'required|numeric',
+            'booking_percentage' => 'required|numeric|min:0',
+            'booking_tax' => 'required|numeric|min:0',
+            'booking_post_percentage' => 'required|numeric|min:0',
+            'booking_post_tds' => 'required|numeric|min:0',
         ]);
 
         // Find the company
@@ -47,7 +51,10 @@ class CompanyController extends Controller
         if ($request->hasFile('favicon')) {
             $company->favicon = $request->file('favicon')->store('favicons', 'public');
         }
-
+        $company->booking_percentage = $request->booking_percentage;
+        $company->booking_tax = $request->booking_tax;
+        $company->booking_post_percentage = $request->booking_post_percentage;
+        $company->booking_post_tds = $request->booking_post_tds;
         $company->address = $request->address;
         $company->email = $request->email;
         $company->mobile = $request->mobile;
@@ -96,12 +103,18 @@ class CompanyController extends Controller
     public function booking($id)
     {
         $title = 'Booking List';
-        $query = DB::table('bookings as a')->join('users as b', 'a.user_id', '=', 'b.id')->select('a.*', 'b.name as user_name', 'b.email as user_email', 'b.mobile_no as user_mobile_no')->where('a.status', 1)->where('b.status', 1)->orderBy('a.id', 'desc');
-        if ($id) {
-            $query->where('a.booking_type', $id);
+        $get_booking = Booking::where('status', '!=' , 3)->where('booking_status',$id)->get();
+        $bookings = [];
+        foreach ($get_booking as $booking){
+            $booking->post_user = User::where('id', $booking->user_id)->first();
+            $booking->accept_user = User::where('id', $booking->accept_user_id)->first();
+            $booking->post_user_statement = DB::table('tbl_statement')->where('booking_id',$booking->id)->where('user_id',$booking->user_id)->get();
+            $booking->accept_user_statement = DB::table('tbl_statement')->where('booking_id',$booking->id)->where('user_id',$booking->accept_user_id)->get();
+            $booking->admin_user_statement = DB::table('tbl_statement')->where('booking_id',$booking->id)->where('user_id',1)->get();
+            $booking->booking_log = DB::table('tbl_booking_log as a')->leftJoin('users as b' , 'a.user_id','=','b.id')->select('a.*','b.name as user_name')->where('booking_id',$booking->id)->get();
+            $bookings[] = $booking;
         }
-        $allbooking = $query->get();
-        return view('company.booking_list', compact('allbooking'));
+        return view('company.booking_list', compact('bookings'));
     }
 
     public function feedback_list()

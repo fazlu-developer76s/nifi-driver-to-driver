@@ -121,14 +121,30 @@
 </style>
     <div class="container-fluid">
         <div id="content" class="app-content">
+            @switch(request()->segment(2))
+            @case(1)
+                @php $head_booking_status = "Open"; @endphp
+            @break
+            @case(2)
+                @php $head_booking_status = "Accept"; @endphp
+            @break
+            @case(3)
+                @php $head_booking_status = "Complete"; @endphp
+            @break
+            @case(4)
+                @php $head_booking_status = "Cancel"; @endphp
+            @break
+            @default
+                @php $head_booking_status = "N/A"; @endphp
+        @endswitch
             <div class="d-flex align-items-center mb-5">
                 <div>
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="javascript:;">Booking</a></li>
-                        <li class="breadcrumb-item active"><i class="fa fa-arrow-back"></i> Booking Lead</li>
+                        <li class="breadcrumb-item active"><i class="fa fa-arrow-back"></i> {{ $head_booking_status }} Booking </li>
                     </ol>
-                    <h1 class="page-header mb-0">Booking</h1>
+                    <h1 class="page-header mb-0">{{ $head_booking_status }} Booking</h1>
                 </div>
             </div>
             <!-- Row for equal division -->
@@ -138,7 +154,7 @@
                     <div class="card border-0 mb-4">
                         <div class="card-header h6 mb-0 bg-none p-3 d-flex align-items-center" style="border-bottom: 1px solid #2196f3;">
                             <i class="fab fa-buromobelexperte fa-lg fa-fw text-dark text-opacity-50 me-1"></i>
-                            Booking List
+                            {{ $head_booking_status }}  Booking List
                             <!--<a href="{{ route('lead.create') }}" class="ms-auto">-->
                             <!--    <button class="btn btn-primary">Create Lead</button>-->
                             <!--</a>-->
@@ -168,24 +184,27 @@
                                 <!--</div>-->
 
                                 <thead>
-
                                     <tr>
                                         <th width="1%"></th>
-                                        <th class="text-nowrap">Vehicle Type</th>
-                                        <th class="text-nowrap">Vehicle Number</th>
-                                        <th class="text-nowrap">Pincode</th>
+                                        <th class="text-nowrap">Username</th>
                                         <th class="text-nowrap">Full Name</th>
                                         <th class="text-nowrap">Email</th>
                                         <th class="text-nowrap">Phone</th>
-                                        <th class="text-nowrap">SOC</th>
+                                        <th class="text-nowrap">Num Of People</th>
+                                        <th class="text-nowrap">Pick Date</th>
+                                        <th class="text-nowrap">Pick Time</th>
+                                        <th class="text-nowrap">Pick Location</th>
+                                        <th class="text-nowrap">Drop Location</th>
+                                        <th class="text-nowrap">Seater</th>
+                                        <th class="text-nowrap">Amount</th>
                                         <th class="text-nowrap">Status</th>
                                         <th class="text-nowrap">Created At</th>
                                         <th class="text-nowrap">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if($allbooking)
-                                    @foreach ($allbooking as $book)
+                                    @if($bookings)
+                                    @foreach ($bookings as $book)
                                     @switch(@$book->booking_status)
                                     @case(1)
                                         @php $booking_status = "Open"; @endphp
@@ -194,12 +213,9 @@
                                         @php $booking_status = "Accept"; @endphp
                                     @break
                                     @case(3)
-                                        @php $booking_status = "Rejected"; @endphp
+                                        @php $booking_status = "Complete"; @endphp
                                     @break
                                     @case(4)
-                                        @php $booking_status = "Resolve"; @endphp
-                                    @break
-                                     @case(5)
                                         @php $booking_status = "Cancel"; @endphp
                                     @break
                                     @default
@@ -207,20 +223,27 @@
                                 @endswitch
                                     <tr class="odd gradeX">
                                         <td width="1%" class="fw-bold text-dark">{{ $loop->iteration }}</td>
-                                        <td>{{ $book->vehicle_type }}</td>
-                                        <td>{{ $book->vehicle_number }}</td>
-                                        <td>{{ $book->pincode }}</td>
-                                        <td>{{ ucwords($book->user_name) }}</td>
-                                        <td>{{ ucwords($book->user_email) }}</td>
-                                        <td>{{ $book->user_mobile_no }}</td>
-                                        <td>{{ $book->soc }}</td>
+                                        <td>{{ ucwords($bookings[0]->post_user->name) }}</td>
+                                        <td>{{ ucwords($book->name) }}</td>
+                                        <td>{{ $book->email_id }}</td>
+                                        <td>{{ $book->mobile_no }}</td>
+                                        <td>{{ $book->num_of_people }}</td>
+                                        <td>{{ \Carbon\Carbon::parse(@$booking_status->pick_up_date)->format('d F Y') ?? 'N/A' }}
+                                        <td>{{ \Carbon\Carbon::parse(@$booking_status->pick_up_time)->format('h:i A') ?? 'N/A' }}
+                                        <td>{{ ucwords($book->pick_up_location) }}</td>
+                                        <td>{{ ucwords($book->drop_us_location) }}</td>
+                                        <td>{{ $book->seater }}</td>
+                                        <td>{{ $book->booking_amount }}</td>
                                         <td>{{ $booking_status }}</td>
                                         <td>{{ \Carbon\Carbon::parse(@$booking_status->created_at)->format('d F Y h:i A') ?? 'N/A' }}
-
                                         <td>
+                                            @if($book->booking_status != 1)
                                             <a href="{{ route('lead.view', $book->id) }}" class="text-success me-2">
                                                 <i class="fa fa-eye"></i>
                                             </a>
+                                            @else
+                                            N/A
+                                            @endif
                                         </td>
                                     </tr>
                                     @endforeach

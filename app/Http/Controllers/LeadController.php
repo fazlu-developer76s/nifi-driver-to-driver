@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Loan_request;
 use App\Models\Member;
 use App\Helpers\Global_helper as GlobalHelper;
+use App\Models\Booking;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Ui\Presets\React;
 use App\Models\Providers;
@@ -113,21 +114,17 @@ class LeadController extends Controller
 
     public function view($id)
     {
-
-        $user_id = Auth::user()->id;
-        $get_booking = DB::table('bookings as a')->
-        join('users as b', 'a.user_id','=','b.id')->
-        select('a.*','b.name as user_name','b.email as user_email','b.mobile_no as user_mobile_no')->
-        where('a.status',1)->where('b.status',1)->where('a.id',$id)->first();
-        $get_note = DB::table('notes')->where('loan_request_id', $id)->where('title', 'View Lead')->where('user_id', $user_id)->first();
-        $title = "View Booking";
-        $get_lead = DB::table('enquiries')->join('users', 'enquiries.user_id', '=', 'users.id')->select('enquiries.*', 'users.name as username')->where('enquiries.status', '!=', '3')->where('enquiries.id',$id)->orderBy('enquiries.id', 'desc')->first();
-        $get_providers = DB::table('providers')->where('status',1)->get();
-        $get_assign_id = DB::table('assign_lead')->where('lead_id',$id)->orderBy('id', 'desc')->limit(1)->first();
-        $get_user = User::where('status', 1)
-        ->where('role_id', 4)
-        ->get();
-        return view('lead.view', compact('title', 'get_lead','get_providers','get_assign_id','get_user','get_booking'));
+        $title = 'View Booking';
+        $get_booking = DB::table('tbl_booking')->where('status', '!=' , 3)->where('id',$id)->get();
+        $bookings = [];
+        foreach ($get_booking as $booking){
+            $booking->post_user = DB::table('users')->where('id', $booking->user_id)->first();
+            $booking->accept_user = DB::table('users')->where('id', $booking->accept_user_id)->first();
+            $booking->statement = DB::table('tbl_statement as a')->leftJoin('users as b','a.user_id','=','b.id')->select('a.*','b.name as user_name')->where('a.booking_id',$booking->id)->get();
+            $booking->booking_log = DB::table('tbl_booking_log as a')->leftJoin('users as b' , 'a.user_id','=','b.id')->select('a.*','b.name as user_name')->where('booking_id',$booking->id)->get();
+            $bookings[] = $booking;
+        }
+        return view('lead.view', compact('title', 'bookings'));
     }
 
     public function kyclead_view($id)

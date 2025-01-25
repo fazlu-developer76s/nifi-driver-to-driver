@@ -216,6 +216,7 @@ class ApiController extends Controller
 
     public function accept_booking(Request $request ,$booking_id)
     {
+
         $check_exist_booking = Booking::where('accept_user_id',$request->user->id)->where('status',1)->where('booking_status',2)->first();
         if($check_exist_booking){
             return response()->json(['status' => 'Error','message' => 'You have already accepted a booking'], 400);
@@ -223,11 +224,14 @@ class ApiController extends Controller
         $get_booking = Booking::where('id', $booking_id)->first();
         $get_booking_percentage_amount =  ($get_booking->booking_amount * $get_booking->booking_percentage) / 100 + $get_booking->booking_tax;
         $get_user_wallet = DB::table('users')->where('status', 1)->where('id', $request->user->id)->first();
+        if($get_user_wallet->vehicle_type == '' || $get_user_wallet->vehicle_capicity == '' || $get_user_wallet->registration_number == '' || $get_user_wallet->service_expiry_date == ''){
+            return response()->json(['status' => 'Error','message' => 'Please complete your profile to accept this booking'], 400);
+        }
         if ($get_user_wallet->wallet_amount >= $get_booking_percentage_amount) {
             $main_wallet = $get_user_wallet->wallet_amount - $get_booking_percentage_amount;
             DB::table('users')->where('id', $request->user->id)->update(['wallet_amount' => $main_wallet,  'reserve_amount' => $get_booking_percentage_amount, 'withdraw_amount' => $main_wallet, 'updated_at' => date('Y-m-d H:i:s')]);
             DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id, 'booking_id' => $booking_id, 'booking_type' => 2]);
-            DB::table('tbl_booking')->where('id', $booking_id)->update(['booking_status' => 2 , 'accept_user_id' => $request->user->id]);
+            DB::table('tbl_booking')->where('id', $booking_id)->update(['booking_status' => 2 , 'accept_user_id' => $request->user->id ,'accept_user_vehicle_type' => $get_user_wallet->vehicle_type ,'accept_user_vehicle_capicity'=> $get_user_wallet->vehicle_capicity, 'accept_user_registration_number'=> $get_user_wallet->registration_number , 'accept_user_service_expiry_date'=> $get_user_wallet->service_expiry_date]);
             DB::table('tbl_statement')->insert(['user_id' => $request->user->id, 'booking_id' => $get_booking->id, 'transaction_type' => 1, 'payment_type' => 2, 'amount' => $get_booking_percentage_amount , 'payment_status' => 3]);
             return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
         }
@@ -251,11 +255,11 @@ class ApiController extends Controller
         DB::table('tbl_statement')->where('user_id' , $get_booking->accept_user_id)->where('booking_id' , $get_booking->id)->update(['payment_status' => 1]);
         // admin commision user booking
         DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 2, 'payment_type' => 1, 'amount' => $admin_commision , 'payment_status' => 1]);
+        DB::table('tbl_statement')->insert(['user_id' => 1, 'booking_id' => $get_booking->id , 'transaction_type' => 2, 'payment_type' => 1, 'amount' => $admin_commision , 'payment_status' => 1]);
         DB::table('tbl_booking_log')->insert(['user_id' => $get_booking->accept_user_id, 'booking_id' => $get_booking->id, 'booking_type' => 3]);
         DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 3 ]);
         // post user commission
-        DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id, 'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
+        DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id,  'booking_id' => $get_booking->id ,'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
         DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision,'updated_at' => date('Y-m-d H:i:s')]);
         return response()->json(['status' => 'OK','message' => 'Booking status updated successfully'], 200);
 
@@ -278,7 +282,7 @@ class ApiController extends Controller
         DB::table('tbl_statement')->where('user_id' , $get_booking->accept_user_id)->where('booking_id' , $get_booking->id)->update(['payment_status' => 1]);
         // admin commision user booking
         DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 5, 'payment_type' => 1, 'amount' => $booking_accept_user->reserve_amount , 'payment_status' => 1]);
+        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 5, 'booking_id' => $get_booking->id ,'payment_type' => 1, 'amount' => $booking_accept_user->reserve_amount , 'payment_status' => 1]);
         DB::table('tbl_booking_log')->insert(['user_id' => $get_booking->accept_user_id, 'booking_id' => $get_booking->id, 'booking_type' => 4]);
         DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 4 ]);
         // post user commission
@@ -1255,8 +1259,18 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
     {
 
         $user_id = $request->user->id;
-        $get_user = User::where('status', 1)->where('id', $user_id)->first();
-        return response()->json(['status' => 'OK', 'message' => 'User details', 'data' => $get_user], 200);
+        $get_user = User::where('status', 1)->where('id', $user_id)->get();
+        $user_data = [];
+        foreach($get_user as $user){
+            $user->vehicle_images = DB::table('tbl_vehicle_image')->where('status',1)->where('user_id',$user_id)->get();
+            $user_data[] = $user;
+        }
+        return response()->json(['status' => 'OK', 'message' => 'User details', 'data' => $user], 200);
+    }
+
+    public function about_us(Request $request){
+        $about_us = DB::table('pages')->where('id',1)->first();
+        return response()->json(['status' => 'OK', 'data' => $about_us], 200);
     }
 
     public function get_transaction(Request $request)

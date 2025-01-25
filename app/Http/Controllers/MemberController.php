@@ -15,25 +15,26 @@ class MemberController extends Controller
 
     public function index()
     {
-
         $title = "Member List";
-        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('users.role_id', '!=',1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
+        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('users.role_id', '!=', 1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->orderBy('users.id', 'desc')->get();
         return view('member.index', compact('title', 'allmember'));
     }
 
-    public function approved_index(){
+    public function approved_index()
+    {
 
         $title = "Member List";
-        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('roles.id',2)->where('users.is_user_verified',1)->where('users.role_id', '!=',1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
+        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('roles.id', 2)->where('users.is_user_verified', 1)->where('users.role_id', '!=', 1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
         return view('member.index', compact('title', 'allmember'));
     }
 
-    public function pending_index(){
+    public function pending_index()
+    {
 
         $title = "Member List";
         $is_user = 1;
-        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('roles.id',2)->where('users.is_user_verified',2)->where('users.role_id', '!=',1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
-        return view('member.index', compact('title', 'allmember','is_user'));
+        $allmember = DB::table('users')->leftJoin('roles', 'roles.id', '=', 'users.role_id')->where('roles.id', 2)->where('users.is_user_verified', 2)->where('users.role_id', '!=', 1)->where('users.status', '!=', 3)->select('users.*', 'roles.title')->get();
+        return view('member.index', compact('title', 'allmember', 'is_user'));
     }
 
     public function member_kyc(Request $request)
@@ -62,7 +63,7 @@ class MemberController extends Controller
         if ($request->filled('from_date') && $request->filled('to_date')) {
             $query->where(function ($query) use ($request) {
                 $query->where('kyc_processes.created_at', '>=', $request->input('from_date'))
-                      ->where('kyc_processes.created_at', '<=', $request->input('to_date'));
+                    ->where('kyc_processes.created_at', '<=', $request->input('to_date'));
             });
         }
 
@@ -94,7 +95,7 @@ class MemberController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'role_id' => 'required',
-                'gst_no' => 'required',
+                // 'gst_no' => 'required',
                 'email' => [
                     'required',
                     'email',
@@ -105,11 +106,11 @@ class MemberController extends Controller
                     'regex:/^[6-9]\d{9}$/'
                 ],
                 'status' => 'required',
-                'password' => [
-                    'required',
-                    'string',
+                // 'password' => [
+                //     'required',
+                //     'string',
 
-                ],
+                // ],
             ]);
             $check_data =  $this->check_exist_data($request, null);
             if (!empty($check_data)) {
@@ -126,19 +127,19 @@ class MemberController extends Controller
             $member = new Member();
             $member->name = $request->name;
             $member->role_id = $request->role_id;
-            $member->gst_no = $request->gst_no;
+
             $member->email = $request->email;
             $member->mobile_no = $request->mobile_no;
             $member->status = $request->status;
             $member->password = Hash::make($request->password);
-            $member->is_user_verified = 1;
+
             $member->save();
             $insert_id = $member->id;
             return redirect()->route('member')->with('success', 'Member Added Successfully');
         }
 
         $title = "Add Member";
-        $get_role = Roles::where('status', 1)->where('id','!=',1)->get();
+        $get_role = Roles::where('status', 1)->where('id', '!=', 1)->get();
         return view('member.create', compact('title', 'get_role'));
     }
 
@@ -146,10 +147,10 @@ class MemberController extends Controller
     {
         $title = "Edit Member";
         $get_member = Member::where('status', '!=', 3)->where('role_id', '!=', 1)->where('id', $id)->first();
-        if($get_member->role_id == 2){
+        if ($get_member->role_id == 2) {
             $get_role = Roles::where('status', 1)->where('id', 2)->get();
-        }else{
-            $get_role = Roles::where('status', 1)->where('id','!=', 2)->where('id','!=', 1)->get();
+        } else {
+            $get_role = Roles::where('status', 1)->where('id', '!=', 2)->where('id', '!=', 1)->get();
         }
         return view('member.create', compact('title', 'get_member', 'get_role',));
     }
@@ -157,10 +158,13 @@ class MemberController extends Controller
     public function view($id)
     {
         $title = "Edit Member";
-        $running_loan = DB::table('users')->leftJoin('loans', 'users.id', '=', 'loans.user_id')->select('users.name as username', 'users.aadhar_no as user_aadhar_no', 'users.mobile_no as user_mobile_no', 'loans.*')->where('users.id', $id)->where('users.status', 1)->where('loans.status', 1)->where('loans.loan_status', 3)->get();
-        $close_loan = DB::table('users')->leftJoin('loans', 'users.id', '=', 'loans.user_id')->select('users.name as username', 'users.aadhar_no as user_aadhar_no', 'users.mobile_no as user_mobile_no', 'loans.*')->where('users.id', $id)->where('users.status', 1)->where('loans.status', 1)->where('loans.loan_status', 5)->get();
-        $all_loan = DB::table('users')->leftJoin('loans', 'users.id', '=', 'loans.user_id')->select('users.name as username', 'users.aadhar_no as user_aadhar_no', 'users.mobile_no as user_mobile_no', 'loans.*')->where('users.id', $id)->where('users.status', 1)->where('loans.status', 1)->get();
-        return view('member.view', compact('title', 'running_loan', 'close_loan', 'all_loan'));
+        $get_user = DB::table('users as a')
+            ->leftJoin('tbl_vehicle_image as b', 'a.id', '=', 'b.user_id')
+            ->select('a.*', 'b.image as sub_image', 'b.type as image_type')
+            ->where('a.id', $id)
+            ->where('a.status', '!=', 3)
+            ->get();
+        return view('member.view', compact('title', 'get_user'));
     }
 
     public function update(Request $request)
@@ -209,8 +213,7 @@ class MemberController extends Controller
         $member->email = $request->email;
         $member->mobile_no = $request->mobile_no;
         $member->status = $request->status;
-        if($request->gst_no){
-            $member->gst_no = $request->gst_no;
+        if ($request->gst_no) {
         }
         $member->save(); // Use save() to persist the changes
 

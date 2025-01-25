@@ -359,11 +359,13 @@ class Global_helper
     public static function getTablesCount()
     {
         $tables = [
+            // 'Roles' => 'roles',
             'Users' => 'users',
-            'Roles' => 'roles',
-            'Pincode' => 'pincodes',
-            'Booking    ' => 'tbl_booking',
-            'Review' => 'property_reviews',
+            'State' => 'tbl_state',
+            'City' => 'tbl_city',
+            'Vehicle' => 'tbl_vehicle',
+            'Total Booking' => 'tbl_booking',
+            // 'Review' => 'property_reviews',
         ];
         $result = [];
         foreach ($tables as $name => $table) {
