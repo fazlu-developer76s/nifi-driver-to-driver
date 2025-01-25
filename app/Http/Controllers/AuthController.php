@@ -429,20 +429,19 @@ class AuthController extends Controller
     }
     public function update_profile(Request $request)
     {
-        echo 324234; die;
-        // $user = User::findOrFail($request->user->id);
-        // if ($request->hasFile('vehicle_image')) {
-        //     foreach ($request->file('vehicle_image') as $image) {
-        //         $filePath = $image->store('vehicle_image', 'public');
-        //         DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 2]);
-        //     }
-        // }
-        // if ($request->hasFile('vehicle_with_driver')) {
-        //     foreach ($request->file('vehicle_with_driver') as $image) {
-        //         $filePath = $image->store('vehicle_with_driver', 'public');
-        //         DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 1]);
-        //     }
-        // }
+        $user = User::findOrFail($request->user->id);
+        if ($request->hasFile('vehicle_image')) {
+            foreach ($request->file('vehicle_image') as $image) {
+                $filePath = $image->store('vehicle_image', 'public');
+                DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 2]);
+            }
+        }
+        if ($request->hasFile('vehicle_with_driver')) {
+            foreach ($request->file('vehicle_with_driver') as $image) {
+                $filePath = $image->store('vehicle_with_driver', 'public');
+                DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 1]);
+            }
+        }
         $fields = [
             'name', 'email', 'image', 'mobile_no', 'gender', 'aadhar_no', 'pan_no',
             'state', 'city', 'town', 'pincode', 'address', 'permanent_state',
@@ -450,7 +449,7 @@ class AuthController extends Controller
             'permanent_address', 'vehicle_type', 'vehicle_capicity',
             'registration_number', 'service_expiry_date', 'dl_number',
             'dl_front_image', 'dl_back_image', 'rc_number', 'rc_front_image',
-            'rc_back_image', 'ins_number', 'ins_image', 'police_verification'
+            'rc_back_image', 'ins_number', 'ins_image', 'police_verification' , 'bank_name' ,'ifsc_code','account_number'
         ];
         $fileFields = [
             'dl_front_image', 'dl_back_image', 'rc_front_image',
