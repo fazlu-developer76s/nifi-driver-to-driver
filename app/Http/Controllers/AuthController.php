@@ -218,16 +218,16 @@ class AuthController extends Controller
             //     'min:8',
             // ],
         ]);
-        $get_mobile_otp = DB::table('tbl_otp')->where('field_value',$request->mobile_no)->orderBy('id','desc')->first();
-        $current_time = Carbon::now();
-        $otpTime = Carbon::parse($getOTP->created_at);
-        if ($current_time->diffInMinutes($otpTime) > 10) {
-            return response()->json([
-                'status' => "Error",
-                'message' => "OTP is expired",
-                'data' => $request->all()
-            ], 401);
-        }
+        // $get_mobile_otp = DB::table('tbl_otp')->where('field_value',$request->mobile_no)->orderBy('id','desc')->first();
+        // $current_time = Carbon::now();
+        // $otpTime = Carbon::parse($getOTP->created_at);
+        // if ($current_time->diffInMinutes($otpTime) > 10) {
+        //     return response()->json([
+        //         'status' => "Error",
+        //         'message' => "OTP is expired",
+        //         'data' => $request->all()
+        //     ], 401);
+        // }
 
         $user = User::where(function ($query) use ($request) {
             $query->where('mobile_no', $request->mobile_no)
