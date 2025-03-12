@@ -329,8 +329,9 @@ class AuthController extends Controller
             'role' => $role,
             'sub' => $user->id,
             'iat' => time(),
-            'exp' => time() + 600000, // Set a proper expiration time in seconds (e.g., 10 minutes)
+            'exp' => time() + (365 * 24 * 60 * 60), // 1 year in seconds
         ];
+
         return JWT::encode($payload, $key, 'HS256');
     }
     public function ExpireOTP($id)
