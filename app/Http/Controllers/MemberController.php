@@ -225,9 +225,10 @@ class MemberController extends Controller
     public function destroy($id)
     {
 
-        $member = Member::findOrFail($id);
-        $member->status = 3;
-        $member->update();
+        // $member = Member::findOrFail($id);
+        // $member->status = 3;
+        // $member->update();
+        DB::table('users')->where('id',$id)->delete();
         return redirect()->route('member')->with('success', 'Member deleted successfully.');
     }
 

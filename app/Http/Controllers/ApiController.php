@@ -48,7 +48,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'meesage' => 'data not found'
-            ]);
+            ],401);
         }
     }
 
@@ -65,7 +65,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'City not found'
-            ]);
+            ],401);
         }
     }
 
@@ -82,7 +82,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vehicle not found'
-            ]);
+            ],401);
         }
     }
 
@@ -162,7 +162,7 @@ class ApiController extends Controller
         if ($booking) {
             return response()->json(['status' => 'OK', 'message' => 'Booking created successfully'], 200);
         } else {
-            return response()->json(['status' => 'Error', 'message' => 'Failed to create booking']);
+            return response()->json(['status' => 'Error', 'message' => 'Failed to create booking'],401);
         }
     }
 
@@ -219,13 +219,13 @@ class ApiController extends Controller
 
         $check_exist_booking = Booking::where('accept_user_id',$request->user->id)->where('status',1)->where('booking_status',2)->first();
         if($check_exist_booking){
-            return response()->json(['status' => 'Error','message' => 'You have already accepted a booking'], 400);
+            return response()->json(['status' => 'Error','message' => 'You have already accepted a booking'], 401);
         }
         $get_booking = Booking::where('id', $booking_id)->first();
         $get_booking_percentage_amount =  ($get_booking->booking_amount * $get_booking->booking_percentage) / 100 + $get_booking->booking_tax;
         $get_user_wallet = DB::table('users')->where('status', 1)->where('id', $request->user->id)->first();
         if($get_user_wallet->vehicle_type == '' || $get_user_wallet->vehicle_capicity == '' || $get_user_wallet->registration_number == '' || $get_user_wallet->service_expiry_date == ''){
-            return response()->json(['status' => 'Error','message' => 'Please complete your profile to accept this booking'], 400);
+            return response()->json(['status' => 'Error','message' => 'Please complete your profile to accept this booking'], 401);
         }
         if ($get_user_wallet->wallet_amount >= $get_booking_percentage_amount) {
             $main_wallet = $get_user_wallet->wallet_amount - $get_booking_percentage_amount;
@@ -241,7 +241,7 @@ class ApiController extends Controller
     {
         $get_booking = Booking::where('id', $booking_id)->first();
         if($get_booking->booking_status != 2){
-            return response()->json(['status' => 'Error','message' => 'Booking status is not accepted'], 400);
+            return response()->json(['status' => 'Error','message' => 'Booking status is not accepted'], 401);
         }
         $booking_accept_user = DB::table('users')->where('status', 1)->where('id', $get_booking->accept_user_id)->first();
         $get_admin_wallet = DB::table('users')->where('status', 1)->where('id',1)->first();
@@ -354,7 +354,7 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
         if($booking){
             return response()->json(['status' => 'OK','message' => 'Booking fetched successfully', 'data' => $booking], 200);
         }else{
-            return response()->json(['status' => 'Error','message' => 'No booking found'], 404);
+            return response()->json(['status' => 'Error','message' => 'No booking found'], 401);
         }
     }
 
@@ -364,7 +364,7 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
         if($user_wallet){
             return response()->json(['status' => 'OK','message' => 'Wallet statement fetched successfully', 'data' => $user_wallet], 200);
         } else{
-            return response()->json(['status' => 'Error','message' => 'No wallet statement found'], 404);
+            return response()->json(['status' => 'Error','message' => 'No wallet statement found'], 401);
         }
     }
 
@@ -405,12 +405,12 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
             if ($decrypt_data != "") {
                 $response = json_decode($decrypt_data);
                 if (isset($response->data->data->otp_sent) && $response->data->data->otp_sent === true) {
-                    return response()->json(['status' => 'TXNOTP', 'message' => "Aadhar verify successfully", "client_id" => $response->data->transaction_id]);
+                    return response()->json(['status' => 'TXNOTP', 'message' => "Aadhar verify successfully", "client_id" => $response->data->transaction_id],200);
                 } else {
-                    return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"]);
+                    return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"],401);
                 }
             } else {
-                return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"]);
+                return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"] ,401);
             }
         } else {
             $response = json_decode($aadharRecord->response);
@@ -480,10 +480,10 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
                     'address' => $response->data->data->address->house . " " . $response->data->data->address->street . " " . $response->data->data->address->landmark . " " . $response->data->data->address->loc
                 ]);
             } else {
-                return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"]);
+                return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"],401);
             }
         } else {
-            return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"]);
+            return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"],401);
         }
     }
 
