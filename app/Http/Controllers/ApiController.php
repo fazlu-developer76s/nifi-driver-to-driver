@@ -235,6 +235,7 @@ class ApiController extends Controller
             DB::table('tbl_statement')->insert(['user_id' => $request->user->id, 'booking_id' => $get_booking->id, 'transaction_type' => 1, 'payment_type' => 2, 'amount' => $get_booking_percentage_amount , 'payment_status' => 3]);
             return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
         }
+          return response()->json(['status' => 'Error', 'message' => 'Insufficient wallet balance'], 400);
     }
 
     public function complete_booking(Request $request , $booking_id)
@@ -261,7 +262,7 @@ class ApiController extends Controller
         // post user commission
         DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id,  'booking_id' => $get_booking->id ,'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
         DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        return response()->json(['status' => 'OK','message' => 'Booking status updated successfully'], 200);
+        return response()->json(['status' => 'OK','message' => 'Booking accepted successfully'], 200);
 
     }
     public function cancel_booking(Request $request , $booking_id)
