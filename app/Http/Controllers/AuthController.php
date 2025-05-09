@@ -46,7 +46,7 @@ class AuthController extends Controller
         $otp = 123456;
         $mobile_no  = $request->mobile_no;
         $type  = $request->type;
-        if ($mobile_no != "7428059960" && $mobile_no != "8287976642") {
+        if ($mobile_no != "7428059960" && $mobile_no != "8287976642" && $mobile_no != "8700682075") {
             $entity_id = 1701159540601889654;
             $senderId  = "NRSOFT";
             $temp_id   = "1707164805234023036";
@@ -204,10 +204,10 @@ class AuthController extends Controller
                 'required',
                 'regex:/^[6-9][0-9]{9}$/',
             ],
-            'email' => [
-                'required',
-                'email',
-            ],
+            // 'email' => [
+            //     'required',
+            //     'email',
+            // ],
             // 'gender' => [
             //     'required',
             //     'in:male,female,other',
@@ -230,8 +230,7 @@ class AuthController extends Controller
         // }
 
         $user = User::where(function ($query) use ($request) {
-            $query->where('mobile_no', $request->mobile_no)
-                ->orWhere('email', $request->email);
+            $query->where('mobile_no', $request->mobile_no);
         })->where('status', '!=', 3)->first();
         if ($user) {
             return response()->json([
@@ -241,7 +240,7 @@ class AuthController extends Controller
         }
         $user = new User();
         $user->name = $request->name;
-        $user->email = $request->email;
+        // $user->email = $request->email;
         $user->mobile_no = $request->mobile_no;
         $user->gender = $request->gender;
         $user->password = Hash::make($request->password);
@@ -442,13 +441,23 @@ class AuthController extends Controller
     public function update_profile(Request $request)
     {
         $user = User::findOrFail($request->user->id);
+
+
         if ($request->hasFile('vehicle_image')) {
             foreach ($request->file('vehicle_image') as $image) {
+                $oldImages = DB::table('tbl_vehicle_image')
+                    ->where('user_id', $user->id)
+                    ->where('type', 2)
+                    ->delete();
                 $filePath = $image->store('vehicle_image', 'public');
                 DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 2]);
             }
         }
         if ($request->hasFile('vehicle_with_driver')) {
+            $oldImages = DB::table('tbl_vehicle_image')
+                    ->where('user_id', $user->id)
+                    ->where('type', 1)
+                    ->delete();
             foreach ($request->file('vehicle_with_driver') as $image) {
                 $filePath = $image->store('vehicle_with_driver', 'public');
                 DB::table('tbl_vehicle_image')->insert(['user_id' => $user->id,  'image' => $filePath , 'type' => 1]);
