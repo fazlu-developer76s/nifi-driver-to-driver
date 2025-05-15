@@ -91,7 +91,7 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 d-none">
                                         <div class="mb-3">
                                             <label class="form-label">Booking Percentage</label>
                                             <input type="number" name="booking_percentage" class="form-control" value="{{ old('booking_percentage', $company->booking_percentage) }}" required>
@@ -101,7 +101,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 d-none">
                                         <div class="mb-3">
                                             <label class="form-label">Booking Tax</label>
                                             <input type="number" name="booking_tax" class="form-control" value="{{ old('booking_tax', $company->booking_tax) }}" required>
@@ -113,7 +113,7 @@
 
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="form-label">Booking Post Percentage</label>
+                                            <label class="form-label">Booking Post Charges (In Percentage)</label>
                                             <input type="number" name="booking_post_percentage" class="form-control" value="{{ old('booking_post_percentage', $company->booking_post_percentage) }}" required>
                                             @error('booking_post_percentage')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -121,11 +121,20 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 d-none">
                                         <div class="mb-3">
                                             <label class="form-label">Booking Post TDS</label>
                                             <input type="number" name="booking_post_tds" class="form-control" value="{{ old('booking_post_tds', $company->booking_post_tds) }}" required>
                                             @error('booking_post_tds')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Payment Gateway Charges (In Percentage)</label>
+                                            <input type="number" name="payment_gateway_charge" class="form-control" value="{{ old('payment_gateway_charge', $company->payment_gateway_charge) }}" required>
+                                            @error('payment_gateway_charge')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>

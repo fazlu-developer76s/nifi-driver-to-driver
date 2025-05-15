@@ -32,10 +32,11 @@ class CompanyController extends Controller
             'address' => 'required|string|max:500',
             'email' => 'required|email',
             'mobile' => 'required|numeric',
-            'booking_percentage' => 'required|numeric|min:0',
-            'booking_tax' => 'required|numeric|min:0',
+            // 'booking_percentage' => 'required|numeric|min:0',
+            // 'booking_tax' => 'required|numeric|min:0',
             'booking_post_percentage' => 'required|numeric|min:0',
-            'booking_post_tds' => 'required|numeric|min:0',
+            'payment_gateway_charge' => 'required|numeric|min:0',
+            // 'booking_post_tds' => 'required|numeric|min:0',
         ]);
 
         // Find the company
@@ -58,6 +59,7 @@ class CompanyController extends Controller
         $company->address = $request->address;
         $company->email = $request->email;
         $company->mobile = $request->mobile;
+        $company->payment_gateway_charge = $request->payment_gateway_charge;
 
 
         // Save the updated company

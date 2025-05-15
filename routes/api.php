@@ -25,7 +25,8 @@ Route::get('get-state', [ApiController::class, 'get_state']);
 Route::get('get-city/{id}', [ApiController::class, 'get_city']);
 Route::get('get-vehicle', [ApiController::class, 'get_vehicle']);
 Route::middleware(['jwt'])->group(function () {
-
+    Route::post('user/create-razorpay-order', [ApiController::class, 'createOrder']);
+    Route::post('user/create-razorpay-payment', [ApiController::class, 'payment']);
     Route::post('user/update-profile', [AuthController::class, 'update_profile']);
     // Booking Route
     Route::post('user/create-booking', [ApiController::class, 'create_booking']);

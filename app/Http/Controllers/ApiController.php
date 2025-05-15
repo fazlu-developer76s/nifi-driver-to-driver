@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Banner;
 use PDF;
+use Razorpay\Api\Api;
 use App\Models\Blog;
 use App\Models\CategoriesModal;
 use App\Models\CmsModal;
@@ -91,20 +92,15 @@ class ApiController extends Controller
 
 
         $rules = ([
-            'name' => 'required|string|max:255',
-            'email_id' => 'required|email|max:255',
-            'mobile_no' => 'required|string|max:255',
-            'num_of_people' => 'required|integer|min:1',
-            'num_of_lady' => 'nullable|integer|min:0',
-            'num_of_men' => 'nullable|integer|min:0',
-            'num_of_child' => 'nullable|integer|min:0',
-            'pick_up_date' => 'required|date',
-            'pick_up_time' => 'required|string|max:255',
-            // 'pick_up_location' => 'required|string|max:255',
-            'drop_us_location' => 'required|string|max:255',
-            'booking_amount' => 'required|numeric|min:0',
-            'note' => 'nullable|string',
-            'seater' => 'required|integer|min:1',
+            // 'num_of_people' => 'required|integer|min:1',
+            // 'pick_up_date' => 'required|date',
+            // 'pick_up_time' => 'required|string|max:255',
+            // 'drop_us_location' => 'required|string|max:255',
+            // 'booking_amount' => 'required|numeric|min:0',
+            // 'booking_type' => 'required',
+            // 'booking_method' => 'required',
+            // 'amount_nego' => 'required',
+            // 'commission' => 'required'
         ]);
         $validate = \Myhelper::FormValidator($rules, $request);
         if ($validate != "no") {
@@ -122,6 +118,12 @@ class ApiController extends Controller
         $booking->pick_up_date = $request->pick_up_date;
         $booking->pick_up_time = $request->pick_up_time;
         $booking->pick_up_location = $request->pick_up_location;
+        $booking->booking_type = $request->booking_type;
+        $booking->booking_method = $request->booking_method;
+        $booking->amount_nego = $request->amount_nego;
+        $booking->commission = $request->commission;
+        $booking->num_of_days = $request->num_of_days;
+
         if ($request->late) {
             $booking->late = $request->late;
         }
@@ -157,6 +159,7 @@ class ApiController extends Controller
         $booking->booking_tax = Global_helper::companyDetails()->booking_tax;
         $booking->booking_post_percentage = Global_helper::companyDetails()->booking_post_percentage;
         $booking->booking_post_tds = Global_helper::companyDetails()->booking_post_tds;
+        $booking->payment_gateway_charge = Global_helper::companyDetails()->payment_gateway_charge;
         $booking->save();
         DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id, 'booking_id' => $booking->id, 'booking_type' => 1]);
         if ($booking) {
@@ -166,53 +169,57 @@ class ApiController extends Controller
         }
     }
 
-    public function fetch_booking(Request $request)
-    {
-        // Ensure user exists in request
-        if (!$request->user) {
-            return response()->json(['status' => 'Error', 'message' => 'User not authenticated'], 401);
-        }
-        $user_id = $request->user->id;
-        $get_user = User::find($user_id);
-
-        if (!$get_user) {
-            return response()->json(['status' => 'Error', 'message' => 'User not found'], 404);
-        }
-
-        $get_booking = Booking::query()
-            ->where(function ($query) use ($user_id) {
-                $query->where('booking_status', 1)
-                    ->where('status', 1)
-                    ->where('user_id', '!=', $user_id)->where('pick_up_date', '>=', date('Y-m-d'))
-                    ->orWhere(function ($subQuery) {
-                        $subQuery->where('booking_status', 4)
-                            ->where('status', 1);
-                    });
-            });
-
-        // Add user-related filters
-        $get_booking->where(function ($query) use ($get_user) {
-            if ($get_user->state) {
-                $query->orWhere('address', 'LIKE', '%' . $get_user->state . '%')
-                    ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->state . '%');
-            }
-            if ($get_user->city) {
-                $query->orWhere('address', 'LIKE', '%' . $get_user->city . '%')
-                    ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->city . '%');
-            }
-            if ($get_user->pincode) {
-                $query->orWhere('address', 'LIKE', '%' . $get_user->pincode . '%')
-                    ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->pincode . '%');
-            }
-            if ($get_user->address) {
-                $query->orWhere('address', 'LIKE', '%' . $get_user->address . '%')
-                    ->orWhere('pick_up_location', 'LIKE', '%' . $get_user->address . '%');
-            }
-        });
-
-        $bookings = $get_booking->get();
-        return response()->json(['status' => 'OK', 'message' => 'Booking fetched successfully', 'data' => $bookings], 200);
+  public function fetch_booking(Request $request)
+{
+    // Ensure user exists in request
+    if (!$request->user) {
+        return response()->json(['status' => 'Error', 'message' => 'User not authenticated'], 401);
     }
+
+    $user_id = $request->user->id;
+    $get_user = User::find($user_id);
+
+    if (!$get_user) {
+        return response()->json(['status' => 'Error', 'message' => 'User not found'], 404);
+    }
+
+    $get_booking = DB::table('tbl_booking as a')->leftJoin('users as b','b.id','=','a.user_id')->select('a.*', 'b.mobile_no as user_mobile_no')
+        ->where(function ($query) use ($user_id) {
+            $query->where('a.booking_status', 1)
+                  ->where('a.status', 1)
+                  ->where('a.user_id', '!=', $user_id)
+                  ->where('a.pick_up_date', '>=', date('Y-m-d'))
+                  ->orWhere(function ($subQuery) {
+                      $subQuery->where('a.booking_status', 4)
+                               ->where('a.status', 1);
+                  });
+        })
+            // ->where(function ($query) use ($get_user) {
+            //     if ($get_user->state) {
+            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->state . '%')
+            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->state . '%');
+            //     }
+            //     if ($get_user->city) {
+            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->city . '%')
+            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->city . '%');
+            //     }
+            //     if ($get_user->pincode) {
+            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->pincode . '%')
+            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->pincode . '%');
+            //     }
+            //     if ($get_user->address) {
+            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->address . '%')
+            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->address . '%');
+            //     }
+            // })
+        ->get();
+
+    return response()->json([
+        'status'  => 'OK',
+        'message' => 'Booking fetched successfully',
+        'data'    => $get_booking
+    ], 200);
+}
 
     public function accept_booking(Request $request ,$booking_id)
     {
@@ -1321,5 +1328,73 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
         $pdf = PDF::loadView('company.invoice', $data);
         // return $pdf->download('invoice.pdf');
         return $pdf->stream('invoice.pdf');
+    }
+
+        public function createOrder(Request $request)
+    {
+        $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+
+        $amount = $request->amount; // Amount in INR
+        $receiptId = 'BOOKING_' . Str::random(8); // Custom receipt ID
+
+        try {
+            $orderData = [
+                'receipt'         => $receiptId,
+                'amount'          => $amount * 100, // Amount in paisa
+                'currency'        => 'INR',
+                'payment_capture' => 1 // Auto capture after payment
+            ];
+
+            $order = $api->order->create($orderData); // Creates Razorpay Order
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $order['id'],
+                'amount' => $order['amount'],
+                'currency' => $order['currency'],
+                'receipt' => $order['receipt']
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+
+    public function payment(Request $request)
+    {
+
+        $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+        try {
+            // Fetch the payment details
+            $payment = $api->payment->fetch($request->razorpay_payment_id);
+
+            // Check if the payment is authorized
+            if ($payment->status === 'authorized' || $payment->status === 'captured') {
+                // Capture the payment
+                if ($payment->status === 'authorized') {
+                    $payment->capture(['amount' => $payment->amount]); // Amount is in paisa
+                }
+                // Store the payment details
+                $insert =  DB::table('payment_transactions')->insertGetId([
+                    'user_id'     => $request->user->id,
+                    'booking_id'  => $request->booking_id ?? null,
+                    'payment_id'  => $payment->id,
+                    'order_id'    => $payment->order_id ?? null,
+                    'method'      => $payment->method,
+                    'amount'      => $payment->amount / 100, // convert from paisa to INR
+                    'currency'    => $payment->currency,
+                    'status'      => $payment->status,
+                    'response'    => json_encode($payment),
+                    'created_at'  => now(), // manually add if timestamps aren't auto-handled
+                    'updated_at'  => now()
+                ]);
+
+                return response()->json(['success' => true, 'message' => 'Payment captured and saved.', 'data' => $insert]);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Payment not authorized.']);
+            }
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 }
