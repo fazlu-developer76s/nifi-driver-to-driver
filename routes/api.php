@@ -84,6 +84,7 @@ Route::middleware(['jwt'])->group(function () {
     Route::delete('user/delete-pet', [ApiController::class, 'delete_pet']);
     Route::post('user/list-pet', [ApiController::class, 'list_pet']);
     Route::post('user/create-booking', [ApiController::class, 'create_booking']);
+    Route::post('user/edit-booking', [ApiController::class, 'edit_booking']);
     Route::post('user/accept-booking', [ApiController::class, 'accept_booking']);
     Route::post('user/fetch-grommer-booking', [ApiController::class, 'fetch_booking']);
     Route::post('user/messages', [MessageController::class, 'getMessages']);

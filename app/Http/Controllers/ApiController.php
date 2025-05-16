@@ -13,6 +13,7 @@ use App\Models\Package;
 use App\Models\PetCategory;
 use App\Models\Service;
 use App\Models\Testimonal;
+use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'meesage' => 'data not found'
-            ],401);
+            ], 401);
         }
     }
 
@@ -66,7 +67,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'City not found'
-            ],401);
+            ], 401);
         }
     }
 
@@ -83,7 +84,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vehicle not found'
-            ],401);
+            ], 401);
         }
     }
 
@@ -92,15 +93,15 @@ class ApiController extends Controller
 
 
         $rules = ([
-            // 'num_of_people' => 'required|integer|min:1',
-            // 'pick_up_date' => 'required|date',
-            // 'pick_up_time' => 'required|string|max:255',
-            // 'drop_us_location' => 'required|string|max:255',
-            // 'booking_amount' => 'required|numeric|min:0',
-            // 'booking_type' => 'required',
-            // 'booking_method' => 'required',
-            // 'amount_nego' => 'required',
-            // 'commission' => 'required'
+            'num_of_people' => 'required|integer|min:1',
+            'pick_up_date' => 'required|date',
+            'pick_up_time' => 'required|string|max:255',
+            'drop_us_location' => 'required|string|max:255',
+            'booking_amount' => 'required|numeric|min:0',
+            'booking_type' => 'required',
+            'booking_method' => 'required',
+            'amount_nego' => 'required',
+            'commission' => 'required'
         ]);
         $validate = \Myhelper::FormValidator($rules, $request);
         if ($validate != "no") {
@@ -165,214 +166,294 @@ class ApiController extends Controller
         if ($booking) {
             return response()->json(['status' => 'OK', 'message' => 'Booking created successfully'], 200);
         } else {
-            return response()->json(['status' => 'Error', 'message' => 'Failed to create booking'],401);
+            return response()->json(['status' => 'Error', 'message' => 'Failed to create booking'], 401);
         }
     }
 
-  public function fetch_booking(Request $request)
-{
-    // Ensure user exists in request
-    if (!$request->user) {
-        return response()->json(['status' => 'Error', 'message' => 'User not authenticated'], 401);
+    public function edit_booking(Request $request)
+    {
+        $rules = [
+            'num_of_people' => 'required|integer|min:1',
+            'pick_up_date' => 'required|date',
+            'pick_up_time' => 'required|string|max:255',
+            'drop_us_location' => 'required|string|max:255',
+            'booking_amount' => 'required|numeric|min:0',
+            'booking_type' => 'required',
+            'booking_method' => 'required',
+            'amount_nego' => 'required',
+            'commission' => 'required'
+        ];
+
+        $validate = \Myhelper::FormValidator($rules, $request);
+        if ($validate != "no") {
+            return $validate;
+        }
+
+        $booking = Booking::find($request->booking_id);
+        if (!$booking) {
+            return response()->json(['status' => 'Error', 'message' => 'Booking not found'], 404);
+        }
+
+        $booking->user_id = $request->user->id;
+        $booking->name = $request->name;
+        $booking->email_id = $request->email_id;
+        $booking->mobile_no = $request->mobile_no;
+        $booking->num_of_people = $request->num_of_people;
+        $booking->num_of_lady = $request->num_of_lady;
+        $booking->num_of_men = $request->num_of_men;
+        $booking->num_of_child = $request->num_of_child;
+        $booking->pick_up_date = $request->pick_up_date;
+        $booking->pick_up_time = $request->pick_up_time;
+        $booking->pick_up_location = $request->pick_up_location;
+        $booking->booking_type = $request->booking_type;
+        $booking->booking_method = $request->booking_method;
+        $booking->amount_nego = $request->amount_nego;
+        $booking->commission = $request->commission;
+        $booking->num_of_days = $request->num_of_days;
+
+        if ($request->late) {
+            $booking->late = $request->late;
+        }
+        if ($request->long) {
+            $booking->long = $request->long;
+        }
+
+        if (!empty($request->late) && !empty($request->long)) {
+            $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+            $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->late}+{$request->long}&key={$apiKey}";
+            $response = file_get_contents($url);
+            $responseData = json_decode($response, true);
+            if (!empty($responseData['results'])) {
+                $addressComponents = $responseData['results'][0]['components'];
+            }
+            if (isset($addressComponents['postcode'])) {
+                $booking->pincode = $addressComponents['postcode'];
+            }
+            if (isset($responseData['results'][0]['formatted'])) {
+                $booking->address = $responseData['results'][0]['formatted'];
+            }
+            $booking->city = $addressComponents['city'] ?? null;
+            $booking->state = $addressComponents['state'] ?? null;
+            $booking->country = $addressComponents['country'] ?? null;
+        }
+
+        $booking->drop_us_location = $request->drop_us_location;
+        $booking->booking_status = 1;
+        $booking->booking_amount = $request->booking_amount;
+        $booking->note = $request->note;
+        $booking->seater = $request->seater;
+        $booking->booking_percentage = Global_helper::companyDetails()->booking_percentage;
+        $booking->booking_tax = Global_helper::companyDetails()->booking_tax;
+        $booking->booking_post_percentage = Global_helper::companyDetails()->booking_post_percentage;
+        $booking->booking_post_tds = Global_helper::companyDetails()->booking_post_tds;
+        $booking->payment_gateway_charge = Global_helper::companyDetails()->payment_gateway_charge;
+
+        $booking->save();
+
+        // DB::table('tbl_booking_log')->insert([
+        //     'user_id' => $request->user->id,
+        //     'booking_id' => $booking->id,
+        //     'booking_type' => 2 // 2 = edited booking
+        // ]);
+
+        return response()->json(['status' => 'OK', 'message' => 'Booking updated successfully'], 200);
     }
 
-    $user_id = $request->user->id;
-    $get_user = User::find($user_id);
 
-    if (!$get_user) {
-        return response()->json(['status' => 'Error', 'message' => 'User not found'], 404);
+    public function fetch_booking(Request $request)
+    {
+        // Ensure user exists in request
+        if (!$request->user) {
+            return response()->json(['status' => 'Error', 'message' => 'User not authenticated'], 401);
+        }
+
+        $user_id = $request->user->id;
+        $get_user = User::find($user_id);
+
+        if (!$get_user) {
+            return response()->json(['status' => 'Error', 'message' => 'User not found'], 404);
+        }
+
+            $get_booking = DB::table('tbl_booking as a')
+                ->leftJoin('users as b', 'b.id', '=', 'a.user_id')
+                ->select('a.*', 'b.mobile_no as user_mobile_no')
+                ->where(function ($query) use ($user_id) {
+                    $query->where(function ($q) use ($user_id) {
+                        $q->where('a.booking_status', 1)
+                        ->where('a.status', 1)
+                        ->where('a.user_id', '!=', $user_id)
+                        ->where('a.pick_up_date', '>=', date('Y-m-d'));
+                    })->orWhere(function ($q) {
+                        $q->where('a.booking_status', 4)
+                        ->where('a.status', 1);
+                    });
+                })
+                ->when(!empty($request->search), function ($query) use ($request) {
+                    $query->where('a.pick_up_location', 'like', '%' . $request->search . '%');
+                    $query->orWhere('a.drop_us_location', 'like', '%' . $request->search . '%');
+                })
+                ->get();
+
+
+        return response()->json([
+            'status'  => 'OK',
+            'message' => 'Booking fetched successfully',
+            'data'    => $get_booking
+        ], 200);
     }
 
-    $get_booking = DB::table('tbl_booking as a')->leftJoin('users as b','b.id','=','a.user_id')->select('a.*', 'b.mobile_no as user_mobile_no')
-        ->where(function ($query) use ($user_id) {
-            $query->where('a.booking_status', 1)
-                  ->where('a.status', 1)
-                  ->where('a.user_id', '!=', $user_id)
-                  ->where('a.pick_up_date', '>=', date('Y-m-d'))
-                  ->orWhere(function ($subQuery) {
-                      $subQuery->where('a.booking_status', 4)
-                               ->where('a.status', 1);
-                  });
-        })
-            // ->where(function ($query) use ($get_user) {
-            //     if ($get_user->state) {
-            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->state . '%')
-            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->state . '%');
-            //     }
-            //     if ($get_user->city) {
-            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->city . '%')
-            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->city . '%');
-            //     }
-            //     if ($get_user->pincode) {
-            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->pincode . '%')
-            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->pincode . '%');
-            //     }
-            //     if ($get_user->address) {
-            //         $query->orWhere('a.address', 'LIKE', '%' . $get_user->address . '%')
-            //               ->orWhere('a.pick_up_location', 'LIKE', '%' . $get_user->address . '%');
-            //     }
-            // })
-        ->get();
-
-    return response()->json([
-        'status'  => 'OK',
-        'message' => 'Booking fetched successfully',
-        'data'    => $get_booking
-    ], 200);
-}
-
-    public function accept_booking(Request $request ,$booking_id)
+    public function accept_booking(Request $request, $booking_id)
     {
 
-        $check_exist_booking = Booking::where('accept_user_id',$request->user->id)->where('status',1)->where('booking_status',2)->first();
-        if($check_exist_booking){
-            return response()->json(['status' => 'Error','message' => 'You have already accepted a booking'], 401);
+        $check_exist_booking = Booking::where('accept_user_id', $request->user->id)->where('id', $booking_id)->where('status', 1)->where('booking_status', 2)->first();
+        if ($check_exist_booking) {
+            return response()->json(['status' => 'Error', 'message' => 'You have already accepted a booking'], 401);
         }
         $get_booking = Booking::where('id', $booking_id)->first();
         $get_booking_percentage_amount =  ($get_booking->booking_amount * $get_booking->booking_percentage) / 100 + $get_booking->booking_tax;
         $get_user_wallet = DB::table('users')->where('status', 1)->where('id', $request->user->id)->first();
-        if($get_user_wallet->vehicle_type == '' || $get_user_wallet->vehicle_capicity == '' || $get_user_wallet->registration_number == '' || $get_user_wallet->service_expiry_date == ''){
-            return response()->json(['status' => 'Error','message' => 'Please complete your profile to accept this booking'], 401);
+        if ($get_user_wallet->vehicle_type == '' || $get_user_wallet->vehicle_capicity == '' || $get_user_wallet->registration_number == '' || $get_user_wallet->service_expiry_date == '') {
+            return response()->json(['status' => 'Error', 'message' => 'Please complete your profile to accept this booking'], 401);
         }
         if ($get_user_wallet->wallet_amount >= $get_booking_percentage_amount) {
             $main_wallet = $get_user_wallet->wallet_amount - $get_booking_percentage_amount;
             DB::table('users')->where('id', $request->user->id)->update(['wallet_amount' => $main_wallet,  'reserve_amount' => $get_booking_percentage_amount, 'withdraw_amount' => $main_wallet, 'updated_at' => date('Y-m-d H:i:s')]);
             DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id, 'booking_id' => $booking_id, 'booking_type' => 2]);
-            DB::table('tbl_booking')->where('id', $booking_id)->update(['booking_status' => 2 , 'accept_user_id' => $request->user->id ,'accept_user_vehicle_type' => $get_user_wallet->vehicle_type ,'accept_user_vehicle_capicity'=> $get_user_wallet->vehicle_capicity, 'accept_user_registration_number'=> $get_user_wallet->registration_number , 'accept_user_service_expiry_date'=> $get_user_wallet->service_expiry_date]);
-            DB::table('tbl_statement')->insert(['user_id' => $request->user->id, 'booking_id' => $get_booking->id, 'transaction_type' => 1, 'payment_type' => 2, 'amount' => $get_booking_percentage_amount , 'payment_status' => 3]);
+            DB::table('tbl_booking')->where('id', $booking_id)->update(['booking_status' => 2, 'accept_user_id' => $request->user->id, 'accept_user_vehicle_type' => $get_user_wallet->vehicle_type, 'accept_user_vehicle_capicity' => $get_user_wallet->vehicle_capicity, 'accept_user_registration_number' => $get_user_wallet->registration_number, 'accept_user_service_expiry_date' => $get_user_wallet->service_expiry_date]);
+            DB::table('tbl_statement')->insert(['user_id' => $request->user->id, 'booking_id' => $get_booking->id, 'transaction_type' => 1, 'payment_type' => 2, 'amount' => $get_booking_percentage_amount, 'payment_status' => 3]);
             return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
         }
-          return response()->json(['status' => 'Error', 'message' => 'Insufficient wallet balance'], 400);
+        return response()->json(['status' => 'Error', 'message' => 'Insufficient wallet balance'], 400);
     }
 
-    public function complete_booking(Request $request , $booking_id)
+    public function complete_booking(Request $request, $booking_id)
     {
         $get_booking = Booking::where('id', $booking_id)->first();
-        if($get_booking->booking_status != 2){
-            return response()->json(['status' => 'Error','message' => 'Booking status is not accepted'], 401);
+        if ($get_booking->booking_status != 2) {
+            return response()->json(['status' => 'Error', 'message' => 'Booking status is not accepted'], 401);
         }
         $booking_accept_user = DB::table('users')->where('status', 1)->where('id', $get_booking->accept_user_id)->first();
-        $get_admin_wallet = DB::table('users')->where('status', 1)->where('id',1)->first();
+        $get_admin_wallet = DB::table('users')->where('status', 1)->where('id', 1)->first();
         $booking_post_user = DB::table('users')->where('status', 1)->where('id', $get_booking->user_id)->first();
-        $post_user_commision =   ($booking_accept_user->reserve_amount * $get_booking->booking_post_percentage) /  100 - $get_booking->booking_post_tds ;
+        $post_user_commision =   ($booking_accept_user->reserve_amount * $get_booking->booking_post_percentage) /  100 - $get_booking->booking_post_tds;
         $final_post_user_commision = $booking_post_user->wallet_amount + $post_user_commision;
         $admin_commision = $booking_accept_user->reserve_amount - $post_user_commision;
         $final_admin_commision = $get_admin_wallet->wallet_amount + $admin_commision;
         // accept user booking
-        DB::table('users')->where('id', $get_booking->accept_user_id)->update(['reserve_amount' => 0, 'withdraw_amount' => 0 ,'updated_at' => date('Y-m-d H:i:s')]);
-        DB::table('tbl_statement')->where('user_id' , $get_booking->accept_user_id)->where('booking_id' , $get_booking->id)->update(['payment_status' => 1]);
+        DB::table('users')->where('id', $get_booking->accept_user_id)->update(['reserve_amount' => 0, 'withdraw_amount' => 0, 'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->where('user_id', $get_booking->accept_user_id)->where('booking_id', $get_booking->id)->update(['payment_status' => 1]);
         // admin commision user booking
-        DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        DB::table('tbl_statement')->insert(['user_id' => 1, 'booking_id' => $get_booking->id , 'transaction_type' => 2, 'payment_type' => 1, 'amount' => $admin_commision , 'payment_status' => 1]);
+        DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision, 'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->insert(['user_id' => 1, 'booking_id' => $get_booking->id, 'transaction_type' => 2, 'payment_type' => 1, 'amount' => $admin_commision, 'payment_status' => 1]);
         DB::table('tbl_booking_log')->insert(['user_id' => $get_booking->accept_user_id, 'booking_id' => $get_booking->id, 'booking_type' => 3]);
-        DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 3 ]);
+        DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 3]);
         // post user commission
-        DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id,  'booking_id' => $get_booking->id ,'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
-        DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        return response()->json(['status' => 'OK','message' => 'Booking accepted successfully'], 200);
-
+        DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id,  'booking_id' => $get_booking->id, 'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision, 'payment_status' => 1]);
+        DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision, 'updated_at' => date('Y-m-d H:i:s')]);
+        return response()->json(['status' => 'OK', 'message' => 'Booking accepted successfully'], 200);
     }
-    public function cancel_booking(Request $request , $booking_id)
+    public function cancel_booking(Request $request, $booking_id)
     {
         $get_booking = Booking::where('id', $booking_id)->first();
-        if($get_booking->booking_status != 2){
-            return response()->json(['status' => 'Error','message' => 'Booking status is not accepted'], 400);
+        if ($get_booking->booking_status != 2) {
+            return response()->json(['status' => 'Error', 'message' => 'Booking status is not accepted'], 400);
         }
         $booking_accept_user = DB::table('users')->where('status', 1)->where('id', $get_booking->accept_user_id)->first();
-        $get_admin_wallet = DB::table('users')->where('status', 1)->where('id',1)->first();
+        $get_admin_wallet = DB::table('users')->where('status', 1)->where('id', 1)->first();
         $booking_post_user = DB::table('users')->where('status', 1)->where('id', $get_booking->user_id)->first();
-        $post_user_commision =   ($booking_accept_user->reserve_amount * $get_booking->booking_post_percentage) /  100 - $get_booking->booking_post_tds ;
+        $post_user_commision =   ($booking_accept_user->reserve_amount * $get_booking->booking_post_percentage) /  100 - $get_booking->booking_post_tds;
         $final_post_user_commision = $booking_post_user->wallet_amount + $post_user_commision;
         $admin_commision = $booking_accept_user->reserve_amount - $post_user_commision;
         $final_admin_commision = $get_admin_wallet->wallet_amount + $booking_accept_user->reserve_amount;
         // accept user booking
-        DB::table('users')->where('id', $get_booking->accept_user_id)->update(['reserve_amount' => 0, 'withdraw_amount' => 0 ,'updated_at' => date('Y-m-d H:i:s')]);
-        DB::table('tbl_statement')->where('user_id' , $get_booking->accept_user_id)->where('booking_id' , $get_booking->id)->update(['payment_status' => 1]);
+        DB::table('users')->where('id', $get_booking->accept_user_id)->update(['reserve_amount' => 0, 'withdraw_amount' => 0, 'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->where('user_id', $get_booking->accept_user_id)->where('booking_id', $get_booking->id)->update(['payment_status' => 1]);
         // admin commision user booking
-        DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 5, 'booking_id' => $get_booking->id ,'payment_type' => 1, 'amount' => $booking_accept_user->reserve_amount , 'payment_status' => 1]);
+        DB::table('users')->where('id', 1)->update(['wallet_amount' => $final_admin_commision, 'updated_at' => date('Y-m-d H:i:s')]);
+        DB::table('tbl_statement')->insert(['user_id' => 1, 'transaction_type' => 5, 'booking_id' => $get_booking->id, 'payment_type' => 1, 'amount' => $booking_accept_user->reserve_amount, 'payment_status' => 1]);
         DB::table('tbl_booking_log')->insert(['user_id' => $get_booking->accept_user_id, 'booking_id' => $get_booking->id, 'booking_type' => 4]);
-        DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 4 ]);
+        DB::table('tbl_booking')->where('id', $get_booking->id)->update(['booking_status' => 4]);
         // post user commission
         // DB::table('tbl_statement')->insert(['user_id' => $get_booking->user_id, 'transaction_type' => 4, 'payment_type' => 1, 'amount' => $post_user_commision , 'payment_status' => 1]);
         // DB::table('users')->where('id', $get_booking->user_id)->update(['wallet_amount' => $final_post_user_commision,'updated_at' => date('Y-m-d H:i:s')]);
-        return response()->json(['status' => 'OK','message' => 'Booking status updated successfully'], 200);
-
+        return response()->json(['status' => 'OK', 'message' => 'Booking status updated successfully'], 200);
     }
 
 
-/**
- * Update wallets and logs for booking acceptance.
- */
-private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUserWallet, $postUserId, $postUserBookingAmount)
-{
-    DB::table('users')->where('id', $userId)->update([
-        'reserve_amount' => 0,
-        'withdraw_amount' => 0,
-        'updated_at' => now()
-    ]);
+    /**
+     * Update wallets and logs for booking acceptance.
+     */
+    private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUserWallet, $postUserId, $postUserBookingAmount)
+    {
+        DB::table('users')->where('id', $userId)->update([
+            'reserve_amount' => 0,
+            'withdraw_amount' => 0,
+            'updated_at' => now()
+        ]);
 
-    DB::table('users')->where('id', 1)->update([
-        'wallet_amount' => $adminAmount,
-        'updated_at' => now()
-    ]);
+        DB::table('users')->where('id', 1)->update([
+            'wallet_amount' => $adminAmount,
+            'updated_at' => now()
+        ]);
 
-    DB::table('tbl_statement')->insert([
-        'user_id' => 1,
-        'transaction_type' => 2,
-        'payment_type' => 1,
-        'amount' => $adminAmount,
-        'payment_status' => 1
-    ]);
-
-    DB::table('tbl_booking_log')->insert([
-        'user_id' => $userId,
-        'booking_id' => $bookingId,
-        'booking_type' => 3
-    ]);
-
-    DB::table('tbl_booking')->where('id', $bookingId)->update(['booking_status' => 3]);
-
-    if ($postUserId) {
         DB::table('tbl_statement')->insert([
-            'user_id' => $postUserId,
-            'transaction_type' => 4,
+            'user_id' => 1,
+            'transaction_type' => 2,
             'payment_type' => 1,
-            'amount' => $postUserBookingAmount,
+            'amount' => $adminAmount,
             'payment_status' => 1
         ]);
 
-        DB::table('users')->where('id', $postUserId)->update([
-            'wallet_amount' => $postUserWallet,
-            'updated_at' => now()
+        DB::table('tbl_booking_log')->insert([
+            'user_id' => $userId,
+            'booking_id' => $bookingId,
+            'booking_type' => 3
         ]);
+
+        DB::table('tbl_booking')->where('id', $bookingId)->update(['booking_status' => 3]);
+
+        if ($postUserId) {
+            DB::table('tbl_statement')->insert([
+                'user_id' => $postUserId,
+                'transaction_type' => 4,
+                'payment_type' => 1,
+                'amount' => $postUserBookingAmount,
+                'payment_status' => 1
+            ]);
+
+            DB::table('users')->where('id', $postUserId)->update([
+                'wallet_amount' => $postUserWallet,
+                'updated_at' => now()
+            ]);
+        }
     }
-}
 
 
-    public function fetch_my_booking(Request $request , $id) {
+    public function fetch_my_booking(Request $request, $id)
+    {
 
-        $query  = DB::table('tbl_booking')->where('status',1);
-        if($id == 1){
-            $query->where('user_id', $request->user->id);
-        }else{
-            $query->where('accept_user_id', $request->user->id);
+        $query  = DB::table('tbl_booking as a')->leftJoin('users as b','a.user_id','=','b.id')->leftJoin('users as c','a.accept_user_id','=','c.id')->select('a.*','b.name as post_user_name','b.image as post_user_image','b.mobile_no as post_user_mobile_no','c.name as accept_user_name','c.image as accept_user_image','c.mobile_no as accept_user_mobile_no')->where('a.status', 1);
+        if ($id == 1) {
+            $query->where('a.user_id', $request->user->id);
+        } else {
+            $query->where('a.accept_user_id', $request->user->id);
         }
         $booking = $query->get();
-        if($booking){
-            return response()->json(['status' => 'OK','message' => 'Booking fetched successfully', 'data' => $booking], 200);
-        }else{
-            return response()->json(['status' => 'Error','message' => 'No booking found'], 401);
+        if ($booking) {
+            return response()->json(['status' => 'OK', 'message' => 'Booking fetched successfully', 'data' => $booking], 200);
+        } else {
+            return response()->json(['status' => 'Error', 'message' => 'No booking found'], 401);
         }
     }
 
-    public function wallet_statement(Request $request){
+    public function wallet_statement(Request $request)
+    {
 
         $user_wallet = DB::table('tbl_statement')->where('user_id', $request->user->id)->get();
-        if($user_wallet){
-            return response()->json(['status' => 'OK','message' => 'Wallet statement fetched successfully', 'data' => $user_wallet], 200);
-        } else{
-            return response()->json(['status' => 'Error','message' => 'No wallet statement found'], 401);
+        if ($user_wallet) {
+            return response()->json(['status' => 'OK', 'message' => 'Wallet statement fetched successfully', 'data' => $user_wallet], 200);
+        } else {
+            return response()->json(['status' => 'Error', 'message' => 'No wallet statement found'], 401);
         }
     }
 
@@ -413,12 +494,12 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
             if ($decrypt_data != "") {
                 $response = json_decode($decrypt_data);
                 if (isset($response->data->data->otp_sent) && $response->data->data->otp_sent === true) {
-                    return response()->json(['status' => 'TXNOTP', 'message' => "Aadhar verify successfully", "client_id" => $response->data->transaction_id],200);
+                    return response()->json(['status' => 'TXNOTP', 'message' => "Aadhar verify successfully", "client_id" => $response->data->transaction_id], 200);
                 } else {
-                    return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"],401);
+                    return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"], 401);
                 }
             } else {
-                return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"] ,401);
+                return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"], 401);
             }
         } else {
             $response = json_decode($aadharRecord->response);
@@ -488,10 +569,10 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
                     'address' => $response->data->data->address->house . " " . $response->data->data->address->street . " " . $response->data->data->address->landmark . " " . $response->data->data->address->loc
                 ]);
             } else {
-                return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"],401);
+                return response()->json(['status' => 'ERR', 'message' => isset($response->message) ? $response->message : "Please contact your administrator"], 401);
             }
         } else {
-            return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"],401);
+            return response()->json(['status' => 'ERR', 'message' => "Please contact your administrator"], 401);
         }
     }
 
@@ -1269,32 +1350,42 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
         $user_id = $request->user->id;
         $get_user = User::where('status', 1)->where('id', $user_id)->get();
         $user_data = [];
-        foreach($get_user as $user){
-            $user->vehicle_images = DB::table('tbl_vehicle_image')->where('status',1)->where('user_id',$user_id)->get();
+        foreach ($get_user as $user) {
+            $user->vehicle_images = DB::table('tbl_vehicle_image')->where('status', 1)->where('user_id', $user_id)->get();
             $user_data[] = $user;
         }
         return response()->json(['status' => 'OK', 'message' => 'User details', 'data' => $user], 200);
     }
 
-    public function about_us(Request $request){
-        $about_us = DB::table('pages')->where('id',1)->first();
+    public function about_us(Request $request)
+    {
+        $about_us = DB::table('pages')->where('id', 1)->first();
         return response()->json(['status' => 'OK', 'data' => $about_us], 200);
     }
 
     public function get_transaction(Request $request)
     {
+        $new_arr = DB::table('payment_transactions as a')
+            ->leftJoin('users as b', 'a.user_id', '=', 'b.id')
+            ->leftJoin('tbl_booking as c', 'a.booking_id', '=', 'c.id')
+            ->select('a.*', 'b.name as user_name', 'b.email as user_email', 'b.mobile_no as user_mobile', 'c.pick_up_date', 'c.pick_up_time','c.pick_up_location', 'c.drop_us_location', 'c.num_of_people','c.booking_status')
+            // ->where('a.status', 1)
+            // ->where('b.status', 1)
+            ->where('a.user_id', $request->user->id)
+            ->orderBy('a.id', 'desc')
+            ->get();
 
-        $get_transaction = DB::table('tbl_transaction')->where('user_id', $request->user->id)->orderBy('id', 'desc')->get();
-        $new_arr = array();
-        foreach ($get_transaction as $row) {
-            $get_user_info = User::where('status', 1)->where('id', $row->user_id)->first();
-            $get_booking_info = Booking::where('status', 1)->where('id', $row->booking_id)->first();
-            $get_bank_info = DB::table('banks')->where('status', 1)->where('id', $row->active_bank_id)->first();
-            $row->get_user_info = $get_user_info;
-            $row->get_booking_info =  $get_booking_info;
-            $row->get_bank_info =  $get_bank_info;
-            $new_arr[] = $row;
-        }
+        // $get_transaction = DB::table('tbl_transaction')->where('user_id', $request->user->id)->orderBy('id', 'desc')->get();
+        // $new_arr = array();
+        // foreach ($get_transaction as $row) {
+        //     $get_user_info = User::where('status', 1)->where('id', $row->user_id)->first();
+        //     $get_booking_info = Booking::where('status', 1)->where('id', $row->booking_id)->first();
+        //     $get_bank_info = DB::table('banks')->where('status', 1)->where('id', $row->active_bank_id)->first();
+        //     $row->get_user_info = $get_user_info;
+        //     $row->get_booking_info =  $get_booking_info;
+        //     $row->get_bank_info =  $get_bank_info;
+        //     $new_arr[] = $row;
+        // }
 
         return response()->json([
             'status' => 'OK',
@@ -1330,8 +1421,16 @@ private function updateWalletsAndLogs($userId, $bookingId, $adminAmount, $postUs
         return $pdf->stream('invoice.pdf');
     }
 
-        public function createOrder(Request $request)
+    public function createOrder(Request $request)
     {
+
+
+        $get_user_wallet = DB::table('users')->where('status', 1)->where('id', $request->user->id)->first();
+        if ($get_user_wallet->vehicle_type == '' || $get_user_wallet->vehicle_capicity == '' || $get_user_wallet->registration_number == '' || $get_user_wallet->service_expiry_date == '') {
+            return response()->json(['status' => 'Error', 'message' => 'Please complete your profile to accept this booking'], 401);
+        }
+
+
         $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
 
         $amount = $request->amount; // Amount in INR
