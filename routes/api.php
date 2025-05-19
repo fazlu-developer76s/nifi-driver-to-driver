@@ -29,7 +29,6 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('user/create-razorpay-payment', [ApiController::class, 'payment']);
     Route::post('user/update-profile', [AuthController::class, 'update_profile']);
     // Booking Route
-    Route::post('user/create-booking', [ApiController::class, 'create_booking']);
     Route::get('user/fetch-booking', [ApiController::class, 'fetch_booking']);
     Route::get('user/accept-booking/{id}', [ApiController::class, 'accept_booking']);
     Route::get('user/cancel-booking/{id}', [ApiController::class, 'cancel_booking']);
