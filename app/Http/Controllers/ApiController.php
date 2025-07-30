@@ -94,14 +94,14 @@ class ApiController extends Controller
 
         $rules = ([
             'num_of_people' => 'required|integer|min:1',
-            'pick_up_date' => 'required|date',
+            'pick_up_date' => 'required',
             'pick_up_time' => 'required|string|max:255',
-            'drop_us_location' => 'required|string|max:255',
-            'booking_amount' => 'required|numeric|min:0',
+            // 'drop_us_location' => 'required|string|max:255',
+            // 'booking_amount' => 'required|numeric|min:0',
             'booking_type' => 'required',
             'booking_method' => 'required',
-            'amount_nego' => 'required',
-            'commission' => 'required'
+            // 'amount_nego' => 'required',
+            // 'commission' => 'required'
         ]);
         $validate = \Myhelper::FormValidator($rules, $request);
         if ($validate != "no") {
@@ -133,7 +133,7 @@ class ApiController extends Controller
         }
 
         if (!empty($request->late) && !empty($request->long)) {
-            $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+            $apiKey = 'e3236220140e4313b00c09c7e420d58b';
             $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->late}+{$request->long}&key={$apiKey}";
             $response = file_get_contents($url);
             $responseData = json_decode($response, true);
@@ -164,7 +164,7 @@ class ApiController extends Controller
         $booking->save();
         DB::table('tbl_booking_log')->insert(['user_id' => $request->user->id, 'booking_id' => $booking->id, 'booking_type' => 1]);
         if ($booking) {
-            return response()->json(['status' => 'OK', 'message' => 'Booking created successfully'], 200);
+            return response()->json(['status' => 'OK', 'message' => 'Booking created successfully '], 200);
         } else {
             return response()->json(['status' => 'Error', 'message' => 'Failed to create booking'], 401);
         }
@@ -172,17 +172,17 @@ class ApiController extends Controller
 
     public function edit_booking(Request $request)
     {
-        $rules = [
-            'num_of_people' => 'required|integer|min:1',
-            'pick_up_date' => 'required|date',
-            'pick_up_time' => 'required|string|max:255',
-            'drop_us_location' => 'required|string|max:255',
-            'booking_amount' => 'required|numeric|min:0',
-            'booking_type' => 'required',
-            'booking_method' => 'required',
-            'amount_nego' => 'required',
-            'commission' => 'required'
-        ];
+          $rules = ([
+            // 'num_of_people' => 'required|integer|min:1',
+            // 'pick_up_date' => 'required',
+            // 'pick_up_time' => 'required|string|max:255',
+            // // 'drop_us_location' => 'required|string|max:255',
+            // // 'booking_amount' => 'required|numeric|min:0',
+            // 'booking_type' => 'required',
+            // 'booking_method' => 'required',
+            // // 'amount_nego' => 'required',
+            // 'commission' => 'required'
+        ]);
 
         $validate = \Myhelper::FormValidator($rules, $request);
         if ($validate != "no") {
@@ -194,22 +194,66 @@ class ApiController extends Controller
             return response()->json(['status' => 'Error', 'message' => 'Booking not found'], 404);
         }
 
-        $booking->user_id = $request->user->id;
-        $booking->name = $request->name;
-        $booking->email_id = $request->email_id;
-        $booking->mobile_no = $request->mobile_no;
-        $booking->num_of_people = $request->num_of_people;
-        $booking->num_of_lady = $request->num_of_lady;
-        $booking->num_of_men = $request->num_of_men;
-        $booking->num_of_child = $request->num_of_child;
-        $booking->pick_up_date = $request->pick_up_date;
-        $booking->pick_up_time = $request->pick_up_time;
-        $booking->pick_up_location = $request->pick_up_location;
-        $booking->booking_type = $request->booking_type;
-        $booking->booking_method = $request->booking_method;
-        $booking->amount_nego = $request->amount_nego;
-        $booking->commission = $request->commission;
-        $booking->num_of_days = $request->num_of_days;
+      if ($request->has('name')) {
+    $booking->name = $request->name;
+}
+
+if ($request->has('email_id')) {
+    $booking->email_id = $request->email_id;
+}
+
+if ($request->has('mobile_no')) {
+    $booking->mobile_no = $request->mobile_no;
+}
+
+if ($request->has('num_of_people')) {
+    $booking->num_of_people = $request->num_of_people;
+}
+
+if ($request->has('num_of_lady')) {
+    $booking->num_of_lady = $request->num_of_lady;
+}
+
+if ($request->has('num_of_men')) {
+    $booking->num_of_men = $request->num_of_men;
+}
+
+if ($request->has('num_of_child')) {
+    $booking->num_of_child = $request->num_of_child;
+}
+
+if ($request->has('pick_up_date')) {
+    $booking->pick_up_date = $request->pick_up_date;
+}
+
+if ($request->has('pick_up_time')) {
+    $booking->pick_up_time = $request->pick_up_time;
+}
+
+if ($request->has('pick_up_location')) {
+    $booking->pick_up_location = $request->pick_up_location;
+}
+
+if ($request->has('booking_type')) {
+    $booking->booking_type = $request->booking_type;
+}
+
+if ($request->has('booking_method')) {
+    $booking->booking_method = $request->booking_method;
+}
+
+if ($request->has('amount_nego')) {
+    $booking->amount_nego = $request->amount_nego;
+}
+
+if ($request->has('commission')) {
+    $booking->commission = $request->commission;
+}
+
+if ($request->has('num_of_days')) {
+    $booking->num_of_days = $request->num_of_days;
+}
+
 
         if ($request->late) {
             $booking->late = $request->late;
@@ -219,7 +263,7 @@ class ApiController extends Controller
         }
 
         if (!empty($request->late) && !empty($request->long)) {
-            $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+            $apiKey = 'e3236220140e4313b00c09c7e420d58b';
             $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->late}+{$request->long}&key={$apiKey}";
             $response = file_get_contents($url);
             $responseData = json_decode($response, true);
@@ -237,11 +281,23 @@ class ApiController extends Controller
             $booking->country = $addressComponents['country'] ?? null;
         }
 
-        $booking->drop_us_location = $request->drop_us_location;
         $booking->booking_status = 1;
-        $booking->booking_amount = $request->booking_amount;
-        $booking->note = $request->note;
-        $booking->seater = $request->seater;
+    if ($request->has('drop_us_location')) {
+    $booking->drop_us_location = $request->drop_us_location;
+}
+
+if ($request->has('booking_amount')) {
+    $booking->booking_amount = $request->booking_amount;
+}
+
+if ($request->has('note')) {
+    $booking->note = $request->note;
+}
+
+if ($request->has('seater')) {
+    $booking->seater = $request->seater;
+}
+
         $booking->booking_percentage = Global_helper::companyDetails()->booking_percentage;
         $booking->booking_tax = Global_helper::companyDetails()->booking_tax;
         $booking->booking_post_percentage = Global_helper::companyDetails()->booking_post_percentage;
@@ -1144,7 +1200,7 @@ class ApiController extends Controller
             $user->long = $request->long;
         }
         // if(!empty($request->lat) && !empty($request->long) ){
-        //     $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+        //     $apiKey = 'e3236220140e4313b00c09c7e420d58b';
         //     $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->lat}+{$request->long}&key={$apiKey}";
         //     $response = file_get_contents($url);
         //     $responseData = json_decode($response, true);
@@ -1157,7 +1213,7 @@ class ApiController extends Controller
         //     }
         // }
         if (!empty($request->lat) && !empty($request->long)) {
-            $apiKey = '9d52cf15543e4b1d9517f51ba60e6961';
+            $apiKey = 'e3236220140e4313b00c09c7e420d58b';
             $url = "https://api.opencagedata.com/geocode/v1/json?q={$request->lat}+{$request->long}&key={$apiKey}";
 
 
@@ -1496,4 +1552,6 @@ class ApiController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+    
+    
 }
